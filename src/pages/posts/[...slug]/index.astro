@@ -124,8 +124,13 @@ const ogImage = ogImageUrl
 
     <div class="my-2 flex items-center gap-2">
       <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-      <span class="text-muted-foreground text-sm" aria-label="文章字数与阅读时间">
-        · {readingStats.characters.toLocaleString("zh-CN")} 字/词 · 约 {readingStats.minutes} 分钟阅读
+      <span
+        class="text-muted-foreground text-sm"
+        aria-label="文章字数与阅读时间"
+      >
+        · {readingStats.characters.toLocaleString("zh-CN")} 字/词 · 约 {
+          readingStats.minutes
+        } 分钟阅读
       </span>
       <span
         aria-hidden="true"

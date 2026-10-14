@@ -77,7 +77,7 @@ ChatGPT 网页版
 
 ### 那国内访问怎么样？
 
-看到这里，可能有人已经想问了：*Cloudflare 在国内的访问体验，不是一直有点一言难尽吗？*
+看到这里，可能有人已经想问了：_Cloudflare 在国内的访问体验，不是一直有点一言难尽吗？_
 
 确实。不同地区、运营商和网络环境下，访问表现可能有明显差异。
 
@@ -149,14 +149,14 @@ in the configured i18n.locales
 
 后面会频繁用 Codex 和其他 Agent 维护。既然有不少代码并不是自己逐行写的，至少得有自动化检查兜底。
 
-| 检查 | 用途 |
-| --- | --- |
-| ESLint / Prettier | 代码规范和格式 |
-| Astro Check / Build | 类型与构建 |
-| Gitleaks | 检测误提交的密钥、Token |
-| pnpm audit | 扫描依赖漏洞 |
-| GitHub Ruleset | 保护主分支 |
-| Dependabot | 跟踪依赖安全和版本更新 |
+| 检查                | 用途                    |
+| ------------------- | ----------------------- |
+| ESLint / Prettier   | 代码规范和格式          |
+| Astro Check / Build | 类型与构建              |
+| Gitleaks            | 检测误提交的密钥、Token |
+| pnpm audit          | 扫描依赖漏洞            |
+| GitHub Ruleset      | 保护主分支              |
+| Dependabot          | 跟踪依赖安全和版本更新  |
 
 其中 Ruleset 还是我自己在网页上配置的，GPT 当时没有相应操作权限。
 
