@@ -44,3 +44,6 @@ jobs:
 
       - name: "🚀 Build the project"
         run: pnpm run build
+
+      - name: Verify Chinese search assets
+        run: node scripts/check-search.mjs

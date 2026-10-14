@@ -60,6 +60,15 @@ export default defineConfig({
   },
   fonts: [
     {
+      name: "Noto Sans SC",
+      cssVariable: "--font-noto-sans-sc",
+      provider: fontProviders.google(),
+      fallbacks: ["sans-serif"],
+      weights: [400, 700],
+      styles: ["normal"],
+      formats: ["woff", "ttf"],
+    },
+    {
       name: "Google Sans Code",
       cssVariable: "--font-google-sans-code",
       provider: fontProviders.google(),
