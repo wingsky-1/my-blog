@@ -23,7 +23,7 @@ export default defineAstroPaperConfig({
     showArchives: true,
     showBackButton: true,
     editPost: {
-      enabled: true,
+      enabled: false,
       url: "https://github.com/wingsky-1/my-blog/edit/main/",
     },
     search: "pagefind",
