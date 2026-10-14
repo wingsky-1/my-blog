@@ -6,7 +6,9 @@
   --blog-page-gutter: clamp(1rem, 2.5vw, 2rem);
 }
 .post-page-shell {
-  width: min(calc(100% - 2 * var(--blog-page-gutter)), var(--blog-post-shell-width));
+  width: 100%;
+  max-width: var(--blog-post-shell-width);
+  padding-inline: var(--blog-page-gutter);
   margin-inline: auto;
   min-width: 0;
 }
@@ -40,7 +42,7 @@
 }
 @media (min-width: 80rem) {
   .post-page-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, var(--blog-reading-width)) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 45rem minmax(0, 1fr);
     align-items: start;
   }
   .post-reading-column {
