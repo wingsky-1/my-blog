@@ -3,7 +3,7 @@ import { type CollectionEntry, getCollection, render } from "astro:content";
 import PostLayout from "@/layouts/PostLayout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
-import Datetime from "@/components/Datetime.astro";
+import PostMeta from "./_components/PostMeta.astro";
 import Tag from "@/components/Tag.astro";
 import { getPostSlug, getPostUrl } from "@/utils/getPostPaths";
 import { getSortedPosts } from "@/utils/getSortedPosts";
@@ -14,7 +14,7 @@ import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
-import PostToc from "./_components/PostToc.astro";
+import PostContentLayout from "./_components/PostContentLayout.astro";
 import config from "@/config";
 import { getReadingStats } from "@/utils/getReadingStats";
 
@@ -123,29 +123,9 @@ const ogImage = ogImageUrl
       {title}
     </h1>
 
-    <div class="my-2 flex items-center gap-2">
-      <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-      <span
-        class="text-muted-foreground text-sm"
-        aria-label="文章字数与阅读时间"
-      >
-        · {readingStats.characters.toLocaleString("zh-CN")} 字/词 · 约 {
-          readingStats.minutes
-        } 分钟阅读
-      </span>
-      <span
-        aria-hidden="true"
-        class:list={[
-          "text-muted-foreground max-sm:hidden",
-          { hidden: !config.features.editPost?.enabled || hideEditPost },
-        ]}
-      >
-        |
-      </span>
-      <EditPost {hideEditPost} {post} class="max-sm:hidden" />
-    </div>
+    <PostMeta {pubDatetime} {modDatetime} {timezone} characters={readingStats.characters} minutes={readingStats.minutes} />
 
-    <div class="post-content-layout">
+    <PostContentLayout {headings}>
       <article
         id="article"
         class:list={[
@@ -156,8 +136,7 @@ const ogImage = ogImageUrl
       >
         <Content />
       </article>
-      <PostToc {headings} />
-    </div>
+    </PostContentLayout>
 
     <hr class="my-8 border-dashed" />
 
@@ -177,17 +156,6 @@ const ogImage = ogImageUrl
   </main>
   <Footer />
 </PostLayout>
-
-<style>
-  @media (min-width: 1280px) {
-    .post-content-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 220px;
-      gap: 2rem;
-      align-items: start;
-    }
-  }
-</style>
 
 <script is:inline data-astro-rerun>
   function createProgressBar() {
