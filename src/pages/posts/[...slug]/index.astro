@@ -113,9 +113,10 @@ const ogImage = ogImageUrl
 
   <main
     id="main-content"
-    class:list={["app-layout", { "mt-8": !config.features.showBackButton }]}
+    class:list={["post-page-shell", { "mt-8": !config.features.showBackButton }]}
     data-pagefind-body
   >
+    <PostContentLayout {headings}>
     <h1
       style={{ viewTransitionName: toTransitionName(post.id) }}
       class="text-accent inline-block text-2xl font-bold sm:text-3xl"
@@ -131,7 +132,6 @@ const ogImage = ogImageUrl
       minutes={readingStats.minutes}
     />
 
-    <PostContentLayout {headings}>
       <article
         id="article"
         class:list={[
@@ -142,7 +142,6 @@ const ogImage = ogImageUrl
       >
         <Content />
       </article>
-    </PostContentLayout>
 
     <hr class="my-8 border-dashed" />
 
@@ -159,6 +158,7 @@ const ogImage = ogImageUrl
     <hr class="my-8 border-dashed" />
 
     <AdjacentPostNav {prevPost} {nextPost} />
+    </PostContentLayout>
   </main>
   <Footer />
 </PostLayout>
