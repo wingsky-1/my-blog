@@ -11,8 +11,20 @@ const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&t
   data-pagefind-ignore
 >
   <span class="text-muted-foreground">分享文章：</span>
-  <a href={xUrl} target="_blank" rel="noopener noreferrer" class="hover:text-accent underline decoration-dashed underline-offset-4">X</a>
-  <a href={telegramUrl} target="_blank" rel="noopener noreferrer" class="hover:text-accent underline decoration-dashed underline-offset-4">Telegram</a>
+  <a
+    href={xUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="hover:text-accent underline decoration-dashed underline-offset-4"
+    >X</a
+  >
+  <a
+    href={telegramUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="hover:text-accent underline decoration-dashed underline-offset-4"
+    >Telegram</a
+  >
   <button
     type="button"
     id="share-copy-link"
