@@ -35,6 +35,9 @@
   .post-toc-column {
     grid-column: 3;
     grid-row: 1;
+    position: sticky;
+    top: 2rem;
+    align-self: start;
     margin-inline-start: clamp(1.5rem, 2.5vw, 2.5rem);
     min-width: 0;
   }
