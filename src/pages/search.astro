@@ -78,6 +78,13 @@ const t = useTranslations(locale);
         element: "#pagefind-search",
         bundlePath,
         showImages: false,
+        translations: {
+          placeholder: "搜索文章、技术关键词……",
+          search_label: "搜索博客",
+          clear_search: "清除",
+          zero_results: "没有找到与 [SEARCH_TERM] 相关的文章",
+          load_more: "加载更多结果",
+        },
         showSubResults: true,
         processTerm: function (term: string) {
           params.set("q", term); // Update the `q` parameter in the URL
