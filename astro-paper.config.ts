@@ -2,7 +2,7 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://astro-paper.pages.dev/",
+    url: "https://my-blog-2bv.pages.dev/",
     title: "个人技术笔记",
     description: "记录 VPS 运维、AI 工具、编程开发与个人技术实践。",
     author: "wingsky-1",
