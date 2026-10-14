@@ -59,6 +59,19 @@
     min-width: 0;
   }
 }
+/* On articles, keep the two mobile navigation actions on opposite corners.
+   This overrides the upstream md:sticky behavior only below the TOC breakpoint. */
+@media (max-width: 79.999rem) {
+  .post-page-shell #btt-btn-container {
+    position: fixed;
+    inset-inline-start: max(1rem, env(safe-area-inset-left));
+    inset-inline-end: auto;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    top: auto;
+    float: none;
+    margin-inline-end: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .post-page-shell {
     scroll-behavior: auto;
