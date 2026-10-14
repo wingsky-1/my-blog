@@ -1,0 +1,35 @@
+name: Refresh patched lockfile (temporary)
+on:
+  push:
+    branches: [fix/postcss-dependabot-policy]
+    paths:
+      - ".github/workflows/refresh-postcss-lockfile.yml"
+permissions:
+  contents: write
+jobs:
+  refresh:
+    if: github.repository == 'wingsky-1/my-blog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/postcss-dependabot-policy
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Resolve patched versions
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit regenerated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(deps): regenerate lockfile with patched selector parser"
+            git push origin HEAD:fix/postcss-dependabot-policy
+          fi
