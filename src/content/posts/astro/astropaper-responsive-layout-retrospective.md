@@ -1,7 +1,7 @@
 ---
 title: "折腾 AstroPaper：宽屏布局、文章目录与低侵入维护"
 description: "本来只想给博客加个目录，结果把文章布局又折腾了一遍。记录 AstroPaper 宽屏适配、移动端 TOC、踩过的坑，以及如何控制上游升级冲突。"
-pubDatetime: 2026-10-14T22:00:00+08:00
+pubDatetime: 2026-10-14T18:00:00+08:00
 tags: ["个人博客", "Astro", "AstroPaper", "响应式设计", "前端工程"]
 featured: false
 draft: false
