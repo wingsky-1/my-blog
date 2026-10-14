@@ -53,3 +53,21 @@
 7. 以“能够解释每个定制补丁的必要性”为升级评审目标；若上游已经提供同等功能，优先考虑删除自定义实现。
 
 **重要：** 本文件是后续 Agent 的审查清单，不是自动升级指令；禁止未经人工审批自动合并升级 PR。
+
+
+## PR1 响应式布局优化记录（待 CI / 视觉验收）
+
+实施分支：`feat/site-responsive-layout`。此部分记录的是提交内容，不表示已经通过浏览器视觉验收。
+
+- 新增 `src/styles/site-layout.css`，定义本站阅读宽度、文章外框与目录列的局部变量，不改变上游 `app-layout` 的 768px 语义；Header、Footer、普通页、SEO 基础 Layout 不修改。
+- `src/styles/global.css` 增加一次独立样式导入，属于必要且容易重新应用的上游接入补丁。
+- `src/pages/posts/[...slug]/index.astro` 将标题、元信息、正文、标签、分享和上下篇统一放入 `PostContentLayout` 阅读列；这是需要在上游升级时人工合并的主要冲突文件。
+- `PostContentLayout.astro` 删除 `left:50%` 和 `transform`，采用三轨 Grid：中间保持阅读列居中，右侧独立 TOC；窄屏退化为单栏。
+- `PostToc.astro` 使用 Astro 渲染的标题数组，桌面端简洁 sticky 目录，移动端固定触发器与原生 dialog；脚本用动画帧节流跟踪当前章节，并处理页面路由变更时的监听清理。
+- 目录有 H2 时才出现；H3 可显示缩进。保留页面内容索引，目录自身添加 `data-pagefind-ignore`。
+- 风险与尚待验证：移动触发按钮与 BackToTop 的空间关系；多页面 View Transition 后 TOC 生命周期；不同标题密度的活动章节判断；Safari dialog、安全区域和 1280px 临界布局；主站 SEO/RSS/OG/Pagefind 回归测试。
+- 上游参考 Issue：<https://github.com/satnaing/astro-paper/issues/542>。不重复创建 Issue，视觉验收后再决定是否向现有讨论补充方案。
+
+### 验收前禁止合并
+
+须确认 GitHub CI、Gitleaks、安全审计及 Cloudflare Pages Preview，使用实际预览测试 375、390、768、1024、1280、1440、1920、2560px。另验证中文文章 200、标签、搜索索引、RSS、Sitemap、OG、日夜模式、键盘和 Escape 焦点返回。本站作者明确批准前不能合入 main。
