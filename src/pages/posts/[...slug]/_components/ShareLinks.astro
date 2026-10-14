@@ -2,7 +2,8 @@
 type Props = { title: string };
 const pageUrl = Astro.url.href;
 const pageTitle = Astro.props.title ?? "技术笔记";
-const weiboUrl = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(pageUrl)}&title=${encodeURIComponent(pageTitle)}`;
+const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(pageTitle)}&url=${encodeURIComponent(pageUrl)}`;
+const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(pageTitle)}`;
 ---
 
 <div
@@ -10,14 +11,8 @@ const weiboUrl = `https://service.weibo.com/share/share.php?url=${encodeURICompo
   data-pagefind-ignore
 >
   <span class="text-muted-foreground">分享文章：</span>
-  <a
-    href={weiboUrl}
-    target="_blank"
-    rel="noopener noreferrer"
-    class="hover:text-accent underline decoration-dashed underline-offset-4"
-  >
-    微博
-  </a>
+  <a href={xUrl} target="_blank" rel="noopener noreferrer" class="hover:text-accent underline decoration-dashed underline-offset-4">X</a>
+  <a href={telegramUrl} target="_blank" rel="noopener noreferrer" class="hover:text-accent underline decoration-dashed underline-offset-4">Telegram</a>
   <button
     type="button"
     id="share-copy-link"
