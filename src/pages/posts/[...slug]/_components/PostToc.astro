@@ -1,14 +1,14 @@
 ---
 type Heading = { depth: number; slug: string; text: string };
-type Props = { headings: Heading[] };
-const { headings } = Astro.props;
+type Props = { headings: Heading[]; variant: "mobile" | "desktop" };
+const { headings, variant } = Astro.props;
 const sections = headings.filter(heading => heading.depth === 2);
 ---
 
 {
   sections.length > 0 && (
     <>
-      <details class="post-toc-mobile" data-pagefind-ignore>
+      {variant === "mobile" && <details class="post-toc-mobile" data-pagefind-ignore>
         <summary>本文目录（{sections.length} 节）</summary>
         <nav aria-label="文章目录">
           <ol>
@@ -19,8 +19,8 @@ const sections = headings.filter(heading => heading.depth === 2);
             ))}
           </ol>
         </nav>
-      </details>
-      <aside
+      </details>}
+      {variant === "desktop" && <aside
         class="post-toc-desktop"
         aria-label="文章目录"
         data-pagefind-ignore
@@ -35,7 +35,7 @@ const sections = headings.filter(heading => heading.depth === 2);
             ))}
           </ol>
         </nav>
-      </aside>
+      </aside>}
     </>
   )
 }
@@ -45,6 +45,10 @@ const sections = headings.filter(heading => heading.depth === 2);
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     margin-top: 1.25rem;
+    position: sticky;
+    top: 0.5rem;
+    z-index: 20;
+    background: var(--color-background);
     padding: 0.75rem 1rem;
     color: var(--color-foreground);
   }
@@ -79,7 +83,7 @@ const sections = headings.filter(heading => heading.depth === 2);
     text-decoration: underline;
   }
   .post-toc-desktop {
-    display: none;
+    display: block;
   }
   @media (min-width: 1280px) {
     .post-toc-mobile {
