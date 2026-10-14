@@ -71,3 +71,27 @@
 ### 验收前禁止合并
 
 须确认 GitHub CI、Gitleaks、安全审计及 Cloudflare Pages Preview，使用实际预览测试 375、390、768、1024、1280、1440、1920、2560px。另验证中文文章 200、标签、搜索索引、RSS、Sitemap、OG、日夜模式、键盘和 Escape 焦点返回。本站作者明确批准前不能合入 main。
+
+## PR #20 补充：页尾署名及升级冲突台账
+
+本次 PR 新增页尾技术署名：Astro（https://astro.build/）、AstroPaper（https://github.com/satnaing/astro-paper）、Cloudflare Pages（https://pages.cloudflare.com/）。使用可点击文字链接，没有引入 JS 或依赖。
+
+| 文件 | 对上游侵入性 | 修改与升级注意事项 |
+| --- | --- | --- |
+| `src/styles/global.css` | 低至中（原文件新增导入） | 保留原版 `app-layout`，只导入 `site-layout.css`；升级时检查 Tailwind v4 @import 顺序 |
+| `src/styles/site-layout.css` | 低（本站新增） | 所有宽屏 Grid、宽度 Token 集中维护；检查 Tailwind 与浏览器对 `min()` / `dvh` 支持 |
+| `src/pages/posts/[...slug]/index.astro` | 高（原路由结构调整） | 优先人工合并上游新 SEO、OG、文章渲染、导航；禁止整文件覆盖，保留 `render(post).headings` 契约 |
+| `src/pages/posts/[...slug]/_components/PostContentLayout.astro` | 低（本站组件） | 三轨 Grid 中央保持阅读列，右侧预留 TOC；升级后核对页面组件插槽行为 |
+| `src/pages/posts/[...slug]/_components/PostToc.astro` | 低（本站组件） | H2/H3 标题数据、`dialog` 可访问性、视图切换脚本解绑、移动入口与返回顶部按钮位置需要回归 |
+| `src/components/Footer.astro` | 中（上游同路径文件） | 增加技术署名链接；以后若上游重构 Footer，优先提取本站署名为独立组件再接入，不应覆写上游版权和社交功能 |
+| `docs/ASTROPAPER_UPGRADE_REVIEW.zh-CN.md` | 低（本站维护文档） | 每次升级继续记录新文件差异和已移除补丁 |
+
+### 升级时需要重点回归的新增行为
+
+- Astro ClientRouter 页面切换：TOC 脚本初始化、事件释放、原生 `dialog` 关闭与焦点恢复，不得重复监听。
+- 移动端：目录浮动入口与原版 BackToTop 的相对位置，特别是宽度 375px/390px、安全区、暗色主题。
+- 桌面端：1280px 断点、Sticky 滚动区域、活动章节高亮；在 1024/1440/1920/2560px 比对正文视觉中心。
+- 全站：Footer 署名换行、外链、横向滚动条；搜索、标签、归档、文章分页、Pagefind、SEO、OG、RSS、Sitemap。
+- 工程：pnpm lint、format:check、build、audit 与 Gitleaks；Cloudflare Preview 必须实际打开文章检查。
+
+状态约束：以上是实施台账，不代表浏览器截图或全量验收已经完成；此 PR 在站长明确批准前保持不合并。
