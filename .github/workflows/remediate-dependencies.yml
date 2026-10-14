@@ -27,7 +27,9 @@ jobs:
           node-version: "24"
           cache: pnpm
       - name: Update vulnerable versions in lockfile
-        run: pnpm audit --fix=update
+        run: |
+          # pnpm exits 1 when unfixable moderate findings remain; verify high+ after.
+          pnpm audit --fix=update || test $? -eq 1
       - name: Install and verify
         run: |
           pnpm install --frozen-lockfile
