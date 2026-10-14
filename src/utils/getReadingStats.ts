@@ -6,7 +6,7 @@ export function getReadingStats(source: string) {
     .replace(/<[^>]+>/g, " ")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/^`{1,3}|^${1,2}/gm, " ")
+    .replace(/[`$]/g, " ")
     .replace(/[#>*_~|]/g, " ");
 
   const han = prose.match(/[\p{Script=Han}]/gu)?.length ?? 0;
