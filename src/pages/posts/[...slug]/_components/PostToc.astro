@@ -3,7 +3,7 @@ type Props = {
   headings: { depth: number; slug: string; text: string }[];
 };
 const { headings } = Astro.props;
-const sections = headings.filter(h => h.depth === 2 || h.depth === 3);
+const sections = headings.filter(h => h.depth === 2);
 ---
 
 {
@@ -27,13 +27,12 @@ const sections = headings.filter(h => h.depth === 2 || h.depth === 3);
   .post-toc {
     display: none;
   }
-  @media (min-width: 1500px) {
+  @media (min-width: 1280px) {
     .post-toc {
       display: block;
-      position: fixed;
+      position: sticky;
       top: 7rem;
-      left: calc(50% + 340px);
-      width: min(220px, calc((100vw - 720px) / 2 - 28px));
+      width: 100%;
       max-height: calc(100vh - 9rem);
       overflow-y: auto;
       font-size: 0.8125rem;
