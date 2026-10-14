@@ -145,8 +145,7 @@ const ogImage = ogImageUrl
       <EditPost {hideEditPost} {post} class="max-sm:hidden" />
     </div>
 
-    <PostToc {headings} />
-
+    <div class="post-content-layout">
     <article
       id="article"
       class:list={[
@@ -157,6 +156,8 @@ const ogImage = ogImageUrl
     >
       <Content />
     </article>
+    <PostToc {headings} />
+    </div>
 
     <hr class="my-8 border-dashed" />
 
@@ -176,6 +177,17 @@ const ogImage = ogImageUrl
   </main>
   <Footer />
 </PostLayout>
+
+<style>
+  @media (min-width: 1280px) {
+    .post-content-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 2rem;
+      align-items: start;
+    }
+  }
+</style>
 
 <script is:inline data-astro-rerun>
   function createProgressBar() {
