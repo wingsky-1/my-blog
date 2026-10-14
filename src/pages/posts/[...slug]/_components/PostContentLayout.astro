@@ -10,7 +10,7 @@ const { headings } = Astro.props;
     <slot />
   </div>
   <div class="post-toc-column" aria-hidden="true">
-    <slot name="desktop-toc" />
+    <PostToc {headings} />
   </div>
 </div>
 
