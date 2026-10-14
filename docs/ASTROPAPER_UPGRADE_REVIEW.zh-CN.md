@@ -1,97 +1,97 @@
-# AstroPaper 自定义改动与上游升级评审
+# AstroPaper 本站定制、响应式架构与上游升级维护
 
-> 记录日期：2026-10-14。基于当前仓库源码和 PR #19 检查，不等同于完整的上游差异审计。更新主题前必须重新对照上游 Release 和 Git diff。
+> 更新日期：2026-10-14。项目：`wingsky-1/my-blog`。当前工作分支：`feat/site-responsive-layout`，PR：[#20](https://github.com/wingsky-1/my-blog/pull/20)。
+>
+> 状态约束：本文描述 PR #19 已合并的定制与 PR #20 分支上的改动；PR #20 尚未获站长视觉验收，不表示其内容已经进入 `main`。不能将 CI/部署成功等同于所有屏幕的交互验收成功。
 
-## 结论
+## 1. 基线、目标与原则
 
-当前实现整体保留 AstroPaper 的基础框架和静态构建模式，但并非“零侵入主题”。文章页面的 `src/pages/posts/[...slug]/index.astro` 是最主要的上游合并冲突点。建议维持最小编排代码，具体行为放独立组件。
+- 原主题：AstroPaper v6.1 模板；项目采用 Astro 7、Tailwind CSS v4、Markdown/MDX、Pagefind 和 Cloudflare Pages 静态部署。
+- 保留：文章路由、日期与标签、分页、SEO/Canonical/OG/JSON-LD、RSS、Sitemap、Pagefind、明暗主题、GitHub Actions、Gitleaks、依赖审计。
+- 目标：全站维持 AstroPaper 的窄栏阅读理念；宽屏时文章标题、元信息、正文与底部组件共享阅读轴，右侧 TOC 占独立网格轨道；小屏 TOC 随时可访问。
+- 优先独立组件与 CSS Token；不修改 `node_modules`、不引入 UI 框架或新的服务端基础设施；升级时逐文件人工比对，不整体覆盖本站源码。
 
-| 位置 | 定制用途 | 侵入程度 | 上游升级时处理 |
-|---|---|---|---|
-| `astro-paper.config.ts` | 中文站点、域名、分享及编辑开关 | 低 | 对照新版配置 Schema；核对新默认项 |
-| `astro.config.ts` | 中文 i18n、Noto Sans SC OG 字体 | 中 | 检查 Astro 字体 API、i18n 路由变更 |
-| `src/pages/index.astro` | 中文首页及移除模板宣传 | 中 | 对照上游首页变更，保留本站内容 |
-| `src/pages/search.astro` | Pagefind 中文文案 | 低至中 | 检查 Pagefind UI 参数兼容 |
-| `src/pages/og.png.ts`、`src/pages/posts/[...slug]/index.png.ts` | 中文 OG 字体 | 中 | 检查 Satori、Astro 字体 API 和图片输出 |
-| `src/pages/posts/[...slug]/index.astro` | 插入文章布局、元信息及分享组件 | **高** | 每次升级逐项人工对照，不整文件覆盖 |
-| `src/pages/posts/[...slug]/_components/{PostContentLayout,PostMeta,PostToc}.astro` | 自定义布局、阅读时长和目录 | 低（新增独立文件） | 主要确认插槽/标题数据契约 |
-| `src/pages/posts/[...slug]/_components/ShareLinks.astro` | SVG 社交分享 | 中 | 已替换原实现；与上游变化比对 |
-| `src/styles/typography.css` | 去除 h3 斜体 | 低 | 优先考虑新增独立覆盖样式，减少修改上游规则 |
-| `src/utils/getReadingStats.ts` | 生成阅读统计 | 低（新增文件） | 处理 Markdown/MDX 正文解析及统计准确性 |
-| `src/content/posts/**`、`src/content/pages/about.md` | 本站内容 | 低 | 不从上游覆盖 |
-| `pnpm-workspace.yaml`、`pnpm-lock.yaml` | 漏洞修复 override | 中 | 优先恢复上游兼容修复，审视 override 是否还能删除 |
-| `.github/workflows/**` | CI、安全扫描、构建检查 | 中 | 不直接套上游 Actions；每次独立审查 permissions 与第三方 Action SHA |
-| `src/content.config.ts` | 文章 Schema | 当前未为分类魔改 | 保持标签方案，避免新增不必要的 category 字段 |
+## 2. 当前实施架构
 
-## 已采取的低侵入设计
+### 2.1 普通页面及站点框架
 
-1. 文章页保留原来的 `PostLayout`、Markdown 渲染、OG、文章标签与分页导航。
-2. 使用 `render(post).headings` 构建目录，不新增目录数据库或依赖。
-3. 将宽屏/移动端布局、元信息、目录拆成独立 Astro 组件，仅在文章路由中接入。
-4. 手机端采用原生 `details/summary`，桌面侧栏通过 CSS 布局控制，避免全局 JS 状态。
-5. 分享复用项目原有 X、Telegram SVG；不增加新的图标依赖，避免与主题 UI 样式脱节。
-6. 博客仍使用 Astro 静态构建 + Pagefind，避免引入额外服务端基础设施。
+上游 `app-layout` 继续使用 `max-w-3xl`，首页、归档、搜索、标签等普通页面，以及 Header、Footer、Breadcrumb、Main 继续依赖这一共享容器。**本次没有将整站文字内容无差别拉宽**。
 
-## 仍存在的改进事项和风险
+### 2.2 文章页
 
-- 文章路由本身仍由本站定制；未来 AstroPaper 改动 OG、文章日期、分页、路由时，需要人工比对。
-- 阅读时长目前是近似估算；Markdown 中代码块、链接以及 MDX 自定义组件的处理需要补更完整的单元测试。
-- 文章正文依旧维持合理阅读宽度，超宽屏不会将单行文本无限拉长；目录与正文需分别检查 1280、1440、1920、手机断点。
-- Pagefind 搜索索引、Sitemap、RSS 的中文效果需要在真实文章发布后持续验证。
-- OG 图片在中文标题较长时需视觉验收，不能以构建成功替代。
-- PostCSS selector parser 目前使用 pnpm override 解决安全告警；后续上游解除旧版依赖后应移除 override。
-- 从模板初始化删除了部分原作者维护文档和演示资源；主题升级时不要无选择地复制回来。
+`src/styles/site-layout.css` 定义 `--blog-reading-width`、`--blog-post-shell-width`、`--blog-page-gutter` 等站点级规则。文章使用 `post-page-shell` 和 `post-page-grid`。在 1280px 以上采用三轨 Grid，中央阅读列保持约 720px，右侧目录占独立轨道，不再通过 `left: 50%`、`translateX()` 等方式修补定位。标题、元信息、正文、标签、分享和相邻文章导航共用同一阅读列。
 
-## 建议的上游升级 SOP
+目录来自 `render(post).headings`：H2/H3 导航，桌面 Sticky、当前章节提示；窄屏使用固定在右下角的目录触发器与原生 `dialog`。原主题返回顶部控件在文章窄屏通过本站 CSS 定向移动到左下角，避免与目录重叠。**此行为只对文章页面且宽度小于 1280px 生效，不更改上游 `BackToTopButton.astro`。**
 
-1. 记录当前 AstroPaper 基线版本和上游 Git tag、更新日志，检查安全公告与 breaking changes。
-2. 新建 `chore/upgrade-astropaper-<version>` 分支或 PR，逐文件对比而不是覆盖项目。
-3. 优先升级无冲突的工具链、CSS 和配置；逐项合并文章路由、OG、搜索等定制文件。
-4. 运行 `pnpm install --frozen-lockfile`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm audit --audit-level high`。
-5. 在 Cloudflare Preview 实际打开中文文章页，验证 375/768/1280/1440/1920 宽度、TOC、图标分享、文章标签、搜索与 OG。
-6. 确认不增加意外的 GitHub Actions 写权限和生产密钥泄漏风险，再审核合并。
-7. 以“能够解释每个定制补丁的必要性”为升级评审目标；若上游已经提供同等功能，优先考虑删除自定义实现。
+### 2.3 首页与页尾
 
-**重要：** 本文件是后续 Agent 的审查清单，不是自动升级指令；禁止未经人工审批自动合并升级 PR。
+首页 Hero 增加弱化的小字“虽然也没有什么技术含量。”，是本站文本偏好。页尾版权、Astro、AstroPaper、Cloudflare Pages 署名集成于同一个弹性排版区域；宽度不足允许自然换行，原有社交链接保留。不引入额外依赖。
 
+## 3. 定制文件台账：以升级冲突而非代码行数判断侵入
 
-## PR1 响应式布局优化记录（待 CI / 视觉验收）
+| 文件 | 来源与用途 | 上游冲突风险 | 升级处理 |
+| --- | --- | --- | --- |
+| `astro-paper.config.ts` | 本站站点信息、中文、编辑开关 | 低 | 比对新版配置字段及默认值 |
+| `astro.config.ts` | i18n / OG 字体等项目配置 | 中 | 检查 Astro API、字体与路由语义 |
+| `src/styles/global.css` | 上游文件，PR #20 增加本站 CSS 导入 | 低至中 | 保留一次 `site-layout.css` 导入，检查 Tailwind 层叠顺序 |
+| `src/styles/site-layout.css` | **本站新增**，阅读列、Grid、窄屏导航位置 | 低 | 尽量独立保留；检查断点、浏览器兼容及控件间距 |
+| `src/pages/posts/[...slug]/index.astro` | **上游原文件重组，最高风险** | **高** | 人工逐段合并，保证静态路由、OG、SEO、标题与文章组件接入 |
+| `src/pages/posts/[...slug]/_components/PostContentLayout.astro` | 本站新增 Grid 封装 | 低 | 检查 slot、`headings` 传递契约 |
+| `src/pages/posts/[...slug]/_components/PostToc.astro` | 本站新增桌面与移动目录交互 | 低至中 | 验证 ClientRouter 生命周期、焦点、锚点、高亮与安全区域 |
+| `src/pages/posts/[...slug]/_components/PostMeta.astro` | 本站新增阅读统计展示 | 低 | 日期、字词与阅读时长保持响应式换行 |
+| `src/utils/getReadingStats.ts` | 本站新增近似阅读统计 | 低 | 补充复杂 MDX/代码块测试 |
+| `src/components/Footer.astro` | 上游同路径，合并署名至版权行 | **中** | 比对上游 Footer 差异；保持社交区、版权及 HTML 属性 |
+| `src/pages/index.astro` | 中文首页及个性化文案 | 中 | 优先保留本站内容，人工吸收上游结构改进 |
+| `src/pages/search.astro` | Pagefind 中文 UI | 低至中 | 检查 Pagefind API 与语言配置 |
+| `src/pages/og.png.ts`、`src/pages/posts/[...slug]/index.png.ts` | 中文 OG 图片字体 | 中 | 检查 Astro/Satori/字体 API，实际渲染中文长标题 |
+| `src/pages/posts/[...slug]/_components/ShareLinks.astro` | 本站 X/Telegram/复制/系统分享 | 中 | 保留官方 X 图标语义，测试 Web Share API |
+| `src/styles/typography.css` | 正文细节调整，包括 h3 样式 | 低至中 | 优先迁往本站独立样式，避免全局选择器变化 |
+| `pnpm-workspace.yaml` 与 lockfile | 安全依赖 override | 中 | 上游修复后评估能否去除 override |
+| `.github/workflows/**` | 构建、安全扫描与审计 | 中 | 保持最小权限，禁止用上游 workflow 整体覆盖 |
+| `src/content/posts/**`、`src/content/pages/**` | 本站内容 | 低 | 永不以主题更新覆盖文章 |
+| `docs/ASTROPAPER_UPGRADE_REVIEW.zh-CN.md` | 本站升级维护台账 | 无上游同文件冲突 | 每次升级整合更新，避免附加过期流水账 |
 
-实施分支：`feat/site-responsive-layout`。此部分记录的是提交内容，不表示已经通过浏览器视觉验收。
+### 直接修改上游文件的必要性
 
-- 新增 `src/styles/site-layout.css`，定义本站阅读宽度、文章外框与目录列的局部变量，不改变上游 `app-layout` 的 768px 语义；Header、Footer、普通页、SEO 基础 Layout 不修改。
-- `src/styles/global.css` 增加一次独立样式导入，属于必要且容易重新应用的上游接入补丁。
-- `src/pages/posts/[...slug]/index.astro` 将标题、元信息、正文、标签、分享和上下篇统一放入 `PostContentLayout` 阅读列；这是需要在上游升级时人工合并的主要冲突文件。
-- `PostContentLayout.astro` 删除 `left:50%` 和 `transform`，采用三轨 Grid：中间保持阅读列居中，右侧独立 TOC；窄屏退化为单栏。
-- `PostToc.astro` 使用 Astro 渲染的标题数组，桌面端简洁 sticky 目录，移动端固定触发器与原生 dialog；脚本用动画帧节流跟踪当前章节，并处理页面路由变更时的监听清理。
-- 目录有 H2 时才出现；H3 可显示缩进。保留页面内容索引，目录自身添加 `data-pagefind-ignore`。
-- 风险与尚待验证：移动触发按钮与 BackToTop 的空间关系；多页面 View Transition 后 TOC 生命周期；不同标题密度的活动章节判断；Safari dialog、安全区域和 1280px 临界布局；主站 SEO/RSS/OG/Pagefind 回归测试。
-- 上游参考 Issue：<https://github.com/satnaing/astro-paper/issues/542>。不重复创建 Issue，视觉验收后再决定是否向现有讨论补充方案。
+- **不可完全避免**：文章路由原本负责数据获取、SEO 元信息及文章编排，需要最小接入 `PostContentLayout`；这仍是本次最主要的上游合并冲突面。
+- **有限且易恢复**：`global.css` 只提供独立 CSS 入口，`Footer.astro` 只做简短技术署名，`index.astro` 属本站首页文本。
+- **已隔离**：PostToc、PostContentLayout 和 site-layout.css 均属于本站定制，不应因为每次 AstroPaper 升级就整体重写。
+- **刻意不触碰**：`Layout.astro`、`PostLayout.astro`、`Header.astro`、`Main.astro`、`BackToTopButton.astro` 等上游核心文件。
 
-### 验收前禁止合并
+Footer 合并冲突风险是**中低规模的人工处理成本**：它属于上游同路径文件，理论上可能冲突，但改动只在尾部版权容器，不需要为消除一处小补丁而过度设计可配置 Footer 框架。如上游以后重做 Footer，可将署名抽为本站单独组件再接入。
 
-须确认 GitHub CI、Gitleaks、安全审计及 Cloudflare Pages Preview，使用实际预览测试 375、390、768、1024、1280、1440、1920、2560px。另验证中文文章 200、标签、搜索索引、RSS、Sitemap、OG、日夜模式、键盘和 Escape 焦点返回。本站作者明确批准前不能合入 main。
+## 4. 响应式、可访问性与潜在问题
 
-## PR #20 补充：页尾署名及升级冲突台账
+- 小于 1280px：文章单列，目录按钮固定右下角，原站返回顶部按钮用页面限定 CSS 定位在左下角；两者不再依赖不同的 bottom 数值硬编码避让。
+- 大于等于 1280px：正文位于居中 Grid 轨道，右侧 TOC 独立 Sticky；切换点必须检查页面跳动和长标题布局。
+- `dialog`：需验证 Esc、焦点返回、点击锚点关闭及 Safari 行为；目录必须确保无重复 ID 和隐藏焦点问题。
+- `ClientRouter`：切换页面时检查目录脚本与阅读进度条的重复初始化、事件监听清理。
+- `data-pagefind-ignore`：目录内容不参与文章搜索索引；正文仍能搜索。
+- 图片、表格、代码块：测试横向溢出，不使用 transform 修补阅读列。
+- 暗色主题、安全区域、触控尺寸及 reduced-motion 都应验证；CI 通过不等于这些已由浏览器实测。
 
-本次 PR 新增页尾技术署名：Astro（https://astro.build/）、AstroPaper（https://github.com/satnaing/astro-paper）、Cloudflare Pages（https://pages.cloudflare.com/）。使用可点击文字链接，没有引入 JS 或依赖。
+## 5. 上游跟踪与 Issue 评估
 
-| 文件 | 对上游侵入性 | 修改与升级注意事项 |
-| --- | --- | --- |
-| `src/styles/global.css` | 低至中（原文件新增导入） | 保留原版 `app-layout`，只导入 `site-layout.css`；升级时检查 Tailwind v4 @import 顺序 |
-| `src/styles/site-layout.css` | 低（本站新增） | 所有宽屏 Grid、宽度 Token 集中维护；检查 Tailwind 与浏览器对 `min()` / `dvh` 支持 |
-| `src/pages/posts/[...slug]/index.astro` | 高（原路由结构调整） | 优先人工合并上游新 SEO、OG、文章渲染、导航；禁止整文件覆盖，保留 `render(post).headings` 契约 |
-| `src/pages/posts/[...slug]/_components/PostContentLayout.astro` | 低（本站组件） | 三轨 Grid 中央保持阅读列，右侧预留 TOC；升级后核对页面组件插槽行为 |
-| `src/pages/posts/[...slug]/_components/PostToc.astro` | 低（本站组件） | H2/H3 标题数据、`dialog` 可访问性、视图切换脚本解绑、移动入口与返回顶部按钮位置需要回归 |
-| `src/components/Footer.astro` | 中（上游同路径文件） | 增加技术署名链接；以后若上游重构 Footer，优先提取本站署名为独立组件再接入，不应覆写上游版权和社交功能 |
-| `docs/ASTROPAPER_UPGRADE_REVIEW.zh-CN.md` | 低（本站维护文档） | 每次升级继续记录新文件差异和已移除补丁 |
+AstroPaper 上游仓库：https://github.com/satnaing/astro-paper
 
-### 升级时需要重点回归的新增行为
+相关已有 Issue：https://github.com/satnaing/astro-paper/issues/542 ，主题正是改善文章 TOC 与阅读位置提示。维护者曾讨论 absolute + sticky 原型及双目录/默认简洁性的取舍。建议先在该 Issue 交流，**不要另开重复 Issue，未经作者确认不要发帖**。固定 720px 阅读列、中文文案和页尾署名属于个人定制，不应作为上游缺陷提交。
 
-- Astro ClientRouter 页面切换：TOC 脚本初始化、事件释放、原生 `dialog` 关闭与焦点恢复，不得重复监听。
-- 移动端：目录浮动入口与原版 BackToTop 的相对位置，特别是宽度 375px/390px、安全区、暗色主题。
-- 桌面端：1280px 断点、Sticky 滚动区域、活动章节高亮；在 1024/1440/1920/2560px 比对正文视觉中心。
-- 全站：Footer 署名换行、外链、横向滚动条；搜索、标签、归档、文章分页、Pagefind、SEO、OG、RSS、Sitemap。
-- 工程：pnpm lint、format:check、build、audit 与 Gitleaks；Cloudflare Preview 必须实际打开文章检查。
+## 6. 升级标准流程（SOP）
 
-状态约束：以上是实施台账，不代表浏览器截图或全量验收已经完成；此 PR 在站长明确批准前保持不合并。
+1. 记录当前 `main`、AstroPaper 上游 Release/Tag SHA、依赖版本、最新安全公告；读取本表中高/中风险文件。
+2. 创建 `chore/upgrade-astropaper-<version>` 分支，仅在该分支逐项合并上游；**禁止直接覆盖项目文件或改 main**。
+3. 优先应用依赖更新与上游 bugfix；随后手工处理文章路由、首页文案、Footer、中文 OG/Search，确保 `site-layout.css` 等新增文件完整保留。
+4. 如上游有等效 TOC 或扩展点，评估替换并移除本站补丁，不能叠两套目录。
+5. 执行 `pnpm install --frozen-lockfile`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm audit --audit-level high`，并核对 Gitleaks 与 Actions 权限。
+6. 用 Cloudflare Preview 验证文章 URL 200、SEO、中文 OG、Pagefind、RSS/Sitemap、标签、分享和所有交互。
+7. 检查 375、390、768、1024、1280、1440、1920、2560px 下 Header/Footer、文章、TOC、浮动按钮互不覆盖，暗色主题和键盘可用。
+8. 在 PR 中列出可删除的历史补丁、仍需保留的侵入点、失败与修复记录；站长视觉验收并明确同意后方可合并。
+
+## 7. PR #20 验证与交付状态
+
+- 已实施：集中式文章布局、TOC 桌面/移动行为、首页小字、同行版权与技术署名、窄屏导航角落分离。
+- 已有阶段性结果：此前提交的 CI、Security 与 Cloudflare Pages 预览已成功；**之后的新提交仍需重新核对最新状态，不得沿用旧结论**。
+- 待站长验收：完整多分辨率截图、真实 Safari/Chrome 键盘与触控验证、最终外观。不得在未验收时合入。
+- 后续单独文章 PR：参照 Library 草稿，仅在上述改动最终合并/验收后撰写真实复盘，并由站长确认发布。
+
+**维护原则：升级时争取删除不再必要的补丁，而不是一边追上游一边累计更多条件覆盖。**
