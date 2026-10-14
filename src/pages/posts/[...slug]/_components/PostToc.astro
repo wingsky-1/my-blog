@@ -108,6 +108,9 @@ const hasSections = sections.some(h => h.depth === 2);
     .toc-close { border: 1px solid var(--color-border); padding: .4rem .7rem; border-radius: .5rem; }
     .toc-dialog .toc-item a { font-size: .95rem; padding-block: .55rem; }
   }
+  @media (max-width: 47.999rem) {
+    .toc-trigger { bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+  }
 </style>
 
 <script>
