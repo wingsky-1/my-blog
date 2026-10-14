@@ -1,10 +1,14 @@
 ---
-type Props = { headings: { depth: number; slug: string; text: string }[] };
 import PostToc from "./PostToc.astro";
+
+type Props = { headings: { depth: number; slug: string; text: string }[] };
 const { headings } = Astro.props;
 ---
+
 <div class="post-page-grid">
-  <div class="post-reading-column"><slot /></div>
+  <div class="post-reading-column">
+    <slot />
+  </div>
   <aside class="post-toc-column" aria-label="阅读导航">
     <PostToc {headings} />
   </aside>
