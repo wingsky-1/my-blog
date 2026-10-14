@@ -8,34 +8,38 @@ const sections = headings.filter(heading => heading.depth === 2);
 {
   sections.length > 0 && (
     <>
-      {variant === "mobile" && <details class="post-toc-mobile" data-pagefind-ignore>
-        <summary>本文目录（{sections.length} 节）</summary>
-        <nav aria-label="文章目录">
-          <ol>
-            {sections.map(heading => (
-              <li>
-                <a href={`#${heading.slug}`}>{heading.text}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      </details>}
-      {variant === "desktop" && <aside
-        class="post-toc-desktop"
-        aria-label="文章目录"
-        data-pagefind-ignore
-      >
-        <div class="toc-title">本文目录</div>
-        <nav>
-          <ol>
-            {sections.map(heading => (
-              <li>
-                <a href={`#${heading.slug}`}>{heading.text}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      </aside>}
+      {variant === "mobile" && (
+        <details class="post-toc-mobile" data-pagefind-ignore>
+          <summary>本文目录（{sections.length} 节）</summary>
+          <nav aria-label="文章目录">
+            <ol>
+              {sections.map(heading => (
+                <li>
+                  <a href={`#${heading.slug}`}>{heading.text}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </details>
+      )}
+      {variant === "desktop" && (
+        <aside
+          class="post-toc-desktop"
+          aria-label="文章目录"
+          data-pagefind-ignore
+        >
+          <div class="toc-title">本文目录</div>
+          <nav>
+            <ol>
+              {sections.map(heading => (
+                <li>
+                  <a href={`#${heading.slug}`}>{heading.text}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </aside>
+      )}
     </>
   )
 }
