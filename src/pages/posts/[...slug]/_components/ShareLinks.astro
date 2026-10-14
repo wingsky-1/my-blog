@@ -1,54 +1,59 @@
 ---
-import LinkButton from "@/components/LinkButton.astro";
-import { tplStr, useTranslations } from "@/i18n";
-import config from "@/config";
-
-const { shareLinks } = config;
-const t = useTranslations(Astro.currentLocale);
-
-const icons = import.meta.glob<{
-  default: (_props: Record<string, unknown>) => unknown;
-}>("/src/assets/icons/socials/*.svg");
-
-const pageUrl = Astro.url;
-
-const platformLabel = (name: string) =>
-  name.charAt(0).toUpperCase() + name.slice(1);
-
-const items = await Promise.all(
-  shareLinks.map(async ({ name, url, linkTitle }) => {
-    const mod = await icons[`/src/assets/icons/socials/${name}.svg`]?.();
-    const Icon = mod?.default;
-    const title =
-      linkTitle ??
-      (name === "mail"
-        ? t.post.sharePostViaEmail
-        : tplStr(t.post.sharePostOn, { platform: platformLabel(name) }));
-    return { url, title, Icon };
-  })
-);
+const pageUrl = Astro.url.href;
+const pageTitle = Astro.props.title ?? "技术笔记";
+const weiboUrl = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(pageUrl)}&title=${encodeURIComponent(pageTitle)}`;
 ---
 
-{
-  items.some(({ Icon }) => Icon) && (
-    <div class="flex flex-none flex-col items-center justify-center gap-1 md:items-start">
-      <span class="italic">{t.post.sharePostIntro}</span>
-      <div class="text-center">
-        {items.map(({ url, title, Icon }) =>
-          Icon ? (
-            <LinkButton
-              href={`${url}${pageUrl}`}
-              class="scale-90 p-2 hover:rotate-6 sm:p-1"
-              title={title}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Icon class="inline-block size-6 scale-125 fill-transparent stroke-current stroke-2 opacity-90 group-hover:fill-transparent sm:scale-110" />
-              <span class="sr-only">{title}</span>
-            </LinkButton>
-          ) : null
-        )}
-      </div>
-    </div>
-  )
-}
+<div class="my-4 flex flex-wrap items-center gap-3 text-sm" data-pagefind-ignore>
+  <span class="text-muted-foreground">分享文章：</span>
+  <a
+    href={weiboUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="hover:text-accent underline decoration-dashed underline-offset-4"
+  >
+    微博
+  </a>
+  <button type="button" id="share-copy-link" class="hover:text-accent underline decoration-dashed underline-offset-4">
+    复制链接
+  </button>
+  <button type="button" id="share-native" class="hover:text-accent hidden underline decoration-dashed underline-offset-4">
+    系统分享
+  </button>
+  <span id="share-status" class="text-muted-foreground" role="status" aria-live="polite"></span>
+</div>
+
+<script>
+  function initPostSharing() {
+    const copy = document.querySelector<HTMLButtonElement>("#share-copy-link");
+    const native = document.querySelector<HTMLButtonElement>("#share-native");
+    const status = document.querySelector<HTMLElement>("#share-status");
+    if (!copy || !native || !status) return;
+
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        status.textContent = "链接已复制";
+      } catch {
+        status.textContent = "复制失败，请从地址栏复制";
+      }
+    };
+
+    if (navigator.share) {
+      native.classList.remove("hidden");
+      native.onclick = async () => {
+        try {
+          await navigator.share({
+            title: document.title,
+            url: window.location.href,
+          });
+        } catch {
+          // User may cancel the OS-native share dialog.
+        }
+      };
+    }
+  }
+
+  document.addEventListener("astro:page-load", initPostSharing);
+  initPostSharing();
+</script>
