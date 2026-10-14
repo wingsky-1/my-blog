@@ -1,4 +1,5 @@
 ---
+type Props = { title: string };
 const pageUrl = Astro.url.href;
 const pageTitle = Astro.props.title ?? "技术笔记";
 const weiboUrl = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(pageUrl)}&title=${encodeURIComponent(pageTitle)}`;
