@@ -7,7 +7,7 @@ export default defineAstroPaperConfig({
     description: "记录 VPS 运维、AI 工具、编程开发与个人技术实践。",
     author: "wingsky-1",
     profile: "https://github.com/wingsky-1",
-    ogImage: "default-og.jpg",
+    ogImage: "og.png",
     lang: "zh-CN",
     timezone: "Asia/Shanghai",
     dir: "ltr",
