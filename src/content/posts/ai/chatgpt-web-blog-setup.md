@@ -1,7 +1,7 @@
 ---
 title: "这次没开 VS Code，直接用 ChatGPT 网页版把博客搭起来了"
 description: "从 AstroPaper 选型、GitHub 和 Cloudflare 部署，到安全 CI、依赖漏洞修复和中文适配，记录一次用 ChatGPT 网页版完成个人博客搭建的真实经历。"
-pubDatetime: 2026-10-14T20:00:00+08:00
+pubDatetime: 2026-10-14T18:00:00+08:00
 tags: ["AI", "ChatGPT", "Astro", "Cloudflare", "GitHub Actions"]
 featured: true
 draft: false
