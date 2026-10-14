@@ -1,0 +1,17 @@
+---
+import Datetime from "@/components/Datetime.astro";
+type Props = {
+  pubDatetime: Date;
+  modDatetime?: Date | null;
+  timezone?: string;
+  characters: number;
+  minutes: number;
+};
+const { pubDatetime, modDatetime, timezone, characters, minutes } = Astro.props;
+---
+
+<div class="post-meta my-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground" data-pagefind-ignore>
+  <Datetime {pubDatetime} {modDatetime} {timezone} size="sm" />
+  <span>{characters.toLocaleString("zh-CN")} 字/词</span>
+  <span>约 {minutes} 分钟</span>
+</div>
