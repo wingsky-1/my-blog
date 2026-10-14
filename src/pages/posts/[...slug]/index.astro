@@ -14,6 +14,7 @@ import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
+import PostToc from "./_components/PostToc.astro";
 import config from "@/config";
 import { getReadingStats } from "@/utils/getReadingStats";
 
@@ -74,7 +75,7 @@ const {
   hideEditPost,
 } = post.data;
 
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 const readingStats = getReadingStats(post.body ?? "");
 
 let ogImageUrl: string | undefined;
@@ -143,6 +144,8 @@ const ogImage = ogImageUrl
       </span>
       <EditPost {hideEditPost} {post} class="max-sm:hidden" />
     </div>
+
+    <PostToc {headings} />
 
     <article
       id="article"
