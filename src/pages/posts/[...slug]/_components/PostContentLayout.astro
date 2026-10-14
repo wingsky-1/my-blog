@@ -1,45 +1,15 @@
 ---
-type Props = { headings: { depth: number; slug: string; text: string }[] };
 import PostToc from "./PostToc.astro";
+
+type Props = { headings: { depth: number; slug: string; text: string }[] };
 const { headings } = Astro.props;
 ---
 
-<div class="post-responsive-layout">
+<div class="post-page-grid">
   <div class="post-reading-column">
-    <PostToc {headings} variant="mobile" />
     <slot />
   </div>
-  <div class="post-toc-column">
-    <PostToc {headings} variant="desktop" />
-  </div>
+  <aside class="post-toc-column" aria-label="阅读导航">
+    <PostToc {headings} />
+  </aside>
 </div>
-
-<style>
-  .post-responsive-layout {
-    min-width: 0;
-  }
-  .post-reading-column {
-    min-width: 0;
-  }
-  .post-toc-column {
-    display: none;
-  }
-  @media (min-width: 1280px) {
-    .post-responsive-layout {
-      position: relative;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(1120px, calc(100vw - 64px));
-      display: grid;
-      grid-template-columns: minmax(0, 820px) 230px;
-      gap: 3rem;
-      align-items: start;
-    }
-    .post-toc-column {
-      display: block;
-      min-width: 0;
-      position: sticky;
-      top: 6rem;
-    }
-  }
-</style>

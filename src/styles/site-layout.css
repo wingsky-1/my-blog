@@ -1,0 +1,79 @@
+/* Site-specific layout extensions; keep AstroPaper's app-layout intact. */
+:root {
+  --blog-reading-width: 45rem;
+  --blog-post-shell-width: 77.5rem;
+  --blog-toc-width: 13.75rem;
+  --blog-page-gutter: clamp(1rem, 2.5vw, 2rem);
+}
+.post-page-shell {
+  width: 100%;
+  max-width: var(--blog-post-shell-width);
+  padding-inline: var(--blog-page-gutter);
+  margin-inline: auto;
+  min-width: 0;
+}
+.post-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.post-reading-column {
+  width: min(100%, var(--blog-reading-width));
+  min-width: 0;
+  margin-inline: auto;
+}
+.post-toc-column {
+  min-width: 0;
+}
+.post-reading-column :is(img, video, iframe) {
+  max-width: 100%;
+}
+.post-reading-column :is(pre, table) {
+  max-width: 100%;
+}
+.post-reading-column pre {
+  overflow-x: auto;
+}
+.post-reading-column .app-prose {
+  max-width: 100%;
+}
+.post-reading-column :is(h2, h3, h4) {
+  scroll-margin-top: 5rem;
+}
+@media (min-width: 80rem) {
+  .post-page-grid {
+    grid-template-columns: minmax(0, 1fr) 45rem minmax(0, 1fr);
+    align-items: start;
+  }
+  .post-reading-column {
+    grid-column: 2;
+    width: 100%;
+  }
+  .post-toc-column {
+    grid-column: 3;
+    grid-row: 1;
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    margin-inline-start: clamp(1.5rem, 2.5vw, 2.5rem);
+    min-width: 0;
+  }
+}
+/* On articles, keep the two mobile navigation actions on opposite corners.
+   This overrides the upstream md:sticky behavior only below the TOC breakpoint. */
+@media (max-width: 79.999rem) {
+  .post-page-shell #btt-btn-container {
+    position: fixed;
+    inset-inline-start: max(1rem, env(safe-area-inset-left));
+    inset-inline-end: auto;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    top: auto;
+    float: none;
+    margin-inline-end: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-page-shell {
+    scroll-behavior: auto;
+  }
+}

@@ -1,112 +1,241 @@
 ---
 type Heading = { depth: number; slug: string; text: string };
-type Props = { headings: Heading[]; variant: "mobile" | "desktop" };
-const { headings, variant } = Astro.props;
-const sections = headings.filter(heading => heading.depth === 2);
+const { headings } = Astro.props as { headings: Heading[] };
+const sections = headings.filter(h => h.depth === 2 || h.depth === 3);
+const hasSections = sections.some(h => h.depth === 2);
 ---
 
 {
-  sections.length > 0 && (
-    <>
-      {variant === "mobile" && (
-        <details class="post-toc-mobile" data-pagefind-ignore>
-          <summary>本文目录（{sections.length} 节）</summary>
-          <nav aria-label="文章目录">
-            <ol>
-              {sections.map(heading => (
-                <li>
-                  <a href={`#${heading.slug}`}>{heading.text}</a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        </details>
-      )}
-      {variant === "desktop" && (
-        <aside
-          class="post-toc-desktop"
-          aria-label="文章目录"
-          data-pagefind-ignore
+  hasSections && (
+    <div data-post-toc data-pagefind-ignore>
+      <aside class="post-toc-desktop" aria-label="本文目录">
+        <div class="toc-heading">本文目录</div>
+        <nav aria-label="文章章节">
+          <ol>
+            {sections.map(h => (
+              <li class:list={["toc-item", { "toc-subitem": h.depth === 3 }]}>
+                <a href={`#${h.slug}`} data-toc-link={h.slug}>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </aside>
+      <div class="post-toc-mobile">
+        <button
+          type="button"
+          class="toc-trigger"
+          aria-label="打开本文目录"
+          aria-haspopup="dialog"
+          aria-controls="post-toc-dialog"
         >
-          <div class="toc-title">本文目录</div>
-          <nav>
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            aria-hidden="true"
+          >
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+          </svg>
+          <span>目录</span>
+        </button>
+        <dialog id="post-toc-dialog" class="toc-dialog" aria-label="本文目录">
+          <div class="toc-dialog-header">
+            <strong>本文目录</strong>
+            <button type="button" class="toc-close" aria-label="关闭本文目录">
+              关闭
+            </button>
+          </div>
+          <nav aria-label="手机文章章节">
             <ol>
-              {sections.map(heading => (
-                <li>
-                  <a href={`#${heading.slug}`}>{heading.text}</a>
+              {sections.map(h => (
+                <li class:list={["toc-item", { "toc-subitem": h.depth === 3 }]}>
+                  <a href={`#${h.slug}`} data-toc-link={h.slug}>
+                    {h.text}
+                  </a>
                 </li>
               ))}
             </ol>
           </nav>
-        </aside>
-      )}
-    </>
+        </dialog>
+      </div>
+    </div>
   )
 }
 
 <style>
-  .post-toc-mobile {
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    margin-top: 1.25rem;
-    position: sticky;
-    top: 0.5rem;
-    z-index: 20;
-    background: var(--color-background);
-    padding: 0.75rem 1rem;
-    color: var(--color-foreground);
-  }
-  .post-toc-mobile summary {
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .post-toc-mobile ol,
-  .post-toc-desktop ol {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .post-toc-mobile nav {
-    margin-top: 0.75rem;
-    max-height: 48vh;
-    overflow: auto;
-  }
-  .post-toc-mobile li,
-  .post-toc-desktop li {
-    margin: 0.5rem 0;
-    line-height: 1.6;
-  }
-  a {
-    display: block;
-    color: inherit;
-    text-decoration: none;
-  }
-  a:hover,
-  a:focus-visible {
-    color: var(--color-accent);
-    text-decoration: underline;
-  }
   .post-toc-desktop {
-    display: block;
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100dvh - 4rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    color: var(--color-muted-foreground);
+    font-size: 0.8125rem;
   }
-  @media (min-width: 1280px) {
-    .post-toc-mobile {
+  .toc-heading {
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin-bottom: 0.8rem;
+  }
+  ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-item a {
+    display: block;
+    border-inline-start: 2px solid transparent;
+    padding: 0.34rem 0.5rem 0.34rem 0.8rem;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+  }
+  .toc-subitem a {
+    padding-inline-start: 1.55rem;
+    font-size: 0.94em;
+  }
+  .toc-item a:hover,
+  .toc-item a:focus-visible {
+    color: var(--color-accent);
+  }
+  .toc-item a[aria-current="location"] {
+    color: var(--color-accent);
+    font-weight: 600;
+    border-inline-start-color: var(--color-accent);
+  }
+  .post-toc-mobile {
+    display: none;
+  }
+  @media (max-width: 79.999rem) {
+    .post-toc-desktop {
       display: none;
     }
-    .post-toc-desktop {
+    .post-toc-mobile {
       display: block;
-      position: sticky;
-      top: 6rem;
-      max-height: calc(100vh - 8rem);
-      overflow-y: auto;
-      font-size: 0.8125rem;
-      color: var(--color-muted-foreground);
-      scrollbar-width: thin;
     }
-    .toc-title {
-      font-weight: 600;
+    .toc-trigger {
+      position: fixed;
+      inset-inline-end: max(1rem, env(safe-area-inset-right));
+      bottom: calc(1.25rem + env(safe-area-inset-bottom));
+      z-index: 35;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-background);
       color: var(--color-foreground);
-      margin-bottom: 0.75rem;
+      box-shadow: 0 3px 18px rgb(0 0 0 / 0.14);
+      font-size: 0.85rem;
+    }
+    .toc-dialog {
+      position: fixed;
+      inset: auto 0 0;
+      width: min(100%, 34rem);
+      max-height: min(75dvh, 38rem);
+      margin: auto auto 0;
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+      overflow-y: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 1rem 1rem 0 0;
+      background: var(--color-background);
+      color: var(--color-foreground);
+    }
+    .toc-dialog::backdrop {
+      background: rgb(0 0 0 / 0.48);
+    }
+    .toc-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.7rem;
+    }
+    .toc-close {
+      border: 1px solid var(--color-border);
+      padding: 0.4rem 0.7rem;
+      border-radius: 0.5rem;
+    }
+    .toc-dialog .toc-item a {
+      font-size: 0.95rem;
+      padding-block: 0.55rem;
     }
   }
 </style>
+
+<script>
+  function initPostToc() {
+    const root = document.querySelector<HTMLElement>("[data-post-toc]");
+    if (!root || root.dataset.initialized === "true") return;
+    root.dataset.initialized = "true";
+
+    const dialog = root.querySelector<HTMLDialogElement>(".toc-dialog");
+    const trigger = root.querySelector<HTMLButtonElement>(".toc-trigger");
+    const close = root.querySelector<HTMLButtonElement>(".toc-close");
+    const links = Array.from(
+      root.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")
+    );
+    const headings = [...new Set(links.map(link => link.dataset.tocLink))]
+      .map(id => id && document.getElementById(id))
+      .filter((node): node is HTMLElement => !!node);
+
+    const activate = () => {
+      let active = headings[0]?.id;
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top <= 120) active = heading.id;
+      }
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 4
+      ) {
+        active = headings[headings.length - 1]?.id;
+      }
+      links.forEach(link => {
+        if (link.dataset.tocLink === active) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+    };
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        activate();
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    trigger?.addEventListener("click", () => dialog?.showModal());
+    close?.addEventListener("click", () => dialog?.close());
+    dialog?.addEventListener("click", event => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog?.addEventListener("close", () => trigger?.focus());
+    links.forEach(link =>
+      link.addEventListener("click", () => {
+        if (dialog?.open) dialog.close();
+      })
+    );
+
+    const observer = new MutationObserver(() => {
+      if (root.isConnected) return;
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    activate();
+  }
+  document.addEventListener("astro:page-load", initPostToc);
+  initPostToc();
+</script>
