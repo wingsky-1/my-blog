@@ -8,7 +8,7 @@ const required = [
 
 for (const file of required) {
   if (!existsSync(file)) {
-    console.error(`Search smoke check failed: missing ${file}`);
+    process.stderr.write(`Search smoke check failed: missing ${file}\n`);
     process.exitCode = 1;
   }
 }
@@ -16,11 +16,11 @@ for (const file of required) {
 if (existsSync(required[0])) {
   const html = readFileSync(required[0], "utf8");
   if (!/lang="zh-CN"/i.test(html)) {
-    console.error("Search page is not marked zh-CN.");
+    process.stderr.write("Search page is not marked zh-CN.\n");
     process.exitCode = 1;
   }
 }
 
 if (process.exitCode !== 1) {
-  console.log("Chinese search page and Pagefind assets are present.");
+  process.stdout.write("Chinese search page and Pagefind assets are present.\n");
 }
