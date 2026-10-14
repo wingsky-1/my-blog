@@ -113,7 +113,10 @@ const ogImage = ogImageUrl
 
   <main
     id="main-content"
-    class:list={["post-page-shell", { "mt-8": !config.features.showBackButton }]}
+    class:list={[
+      "post-page-shell",
+      { "mt-8": !config.features.showBackButton },
+    ]}
     data-pagefind-body
   >
     <PostContentLayout {headings}>
