@@ -123,7 +123,13 @@ const ogImage = ogImageUrl
       {title}
     </h1>
 
-    <PostMeta {pubDatetime} {modDatetime} {timezone} characters={readingStats.characters} minutes={readingStats.minutes} />
+    <PostMeta
+      {pubDatetime}
+      {modDatetime}
+      {timezone}
+      characters={readingStats.characters}
+      minutes={readingStats.minutes}
+    />
 
     <PostContentLayout {headings}>
       <article
