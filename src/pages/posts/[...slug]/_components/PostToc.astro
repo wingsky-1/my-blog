@@ -5,43 +5,67 @@ const sections = headings.filter(h => h.depth === 2 || h.depth === 3);
 const hasSections = sections.some(h => h.depth === 2);
 ---
 
-{hasSections && (
-  <div data-post-toc data-pagefind-ignore>
-    <aside class="post-toc-desktop" aria-label="本文目录">
-      <div class="toc-heading">本文目录</div>
-      <nav aria-label="文章章节">
-        <ol>
-          {sections.map(h => (
-            <li class:list={["toc-item", { "toc-subitem": h.depth === 3 }]}>
-              <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
-            </li>
-          ))}
-        </ol>
-      </nav>
-    </aside>
-    <div class="post-toc-mobile">
-      <button type="button" class="toc-trigger" aria-label="打开本文目录" aria-haspopup="dialog" aria-controls="post-toc-dialog">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        <span>目录</span>
-      </button>
-      <dialog id="post-toc-dialog" class="toc-dialog" aria-label="本文目录">
-        <div class="toc-dialog-header">
-          <strong>本文目录</strong>
-          <button type="button" class="toc-close" aria-label="关闭本文目录">关闭</button>
-        </div>
-        <nav aria-label="手机文章章节">
+{
+  hasSections && (
+    <div data-post-toc data-pagefind-ignore>
+      <aside class="post-toc-desktop" aria-label="本文目录">
+        <div class="toc-heading">本文目录</div>
+        <nav aria-label="文章章节">
           <ol>
             {sections.map(h => (
               <li class:list={["toc-item", { "toc-subitem": h.depth === 3 }]}>
-                <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
+                <a href={`#${h.slug}`} data-toc-link={h.slug}>
+                  {h.text}
+                </a>
               </li>
             ))}
           </ol>
         </nav>
-      </dialog>
+      </aside>
+      <div class="post-toc-mobile">
+        <button
+          type="button"
+          class="toc-trigger"
+          aria-label="打开本文目录"
+          aria-haspopup="dialog"
+          aria-controls="post-toc-dialog"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            aria-hidden="true"
+          >
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+          </svg>
+          <span>目录</span>
+        </button>
+        <dialog id="post-toc-dialog" class="toc-dialog" aria-label="本文目录">
+          <div class="toc-dialog-header">
+            <strong>本文目录</strong>
+            <button type="button" class="toc-close" aria-label="关闭本文目录">
+              关闭
+            </button>
+          </div>
+          <nav aria-label="手机文章章节">
+            <ol>
+              {sections.map(h => (
+                <li class:list={["toc-item", { "toc-subitem": h.depth === 3 }]}>
+                  <a href={`#${h.slug}`} data-toc-link={h.slug}>
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </dialog>
+      </div>
     </div>
-  </div>
-)}
+  )
+}
 
 <style>
   .post-toc-desktop {
@@ -53,27 +77,47 @@ const hasSections = sections.some(h => h.depth === 2);
     color: var(--color-muted-foreground);
     font-size: 0.8125rem;
   }
-  .toc-heading { font-weight: 600; color: var(--color-foreground); margin-bottom: .8rem; }
-  ol { list-style: none; padding: 0; margin: 0; }
+  .toc-heading {
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin-bottom: 0.8rem;
+  }
+  ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
   .toc-item a {
     display: block;
     border-inline-start: 2px solid transparent;
-    padding: .34rem .5rem .34rem .8rem;
+    padding: 0.34rem 0.5rem 0.34rem 0.8rem;
     text-decoration: none;
     overflow-wrap: anywhere;
     line-height: 1.55;
   }
-  .toc-subitem a { padding-inline-start: 1.55rem; font-size: .94em; }
-  .toc-item a:hover, .toc-item a:focus-visible { color: var(--color-accent); }
+  .toc-subitem a {
+    padding-inline-start: 1.55rem;
+    font-size: 0.94em;
+  }
+  .toc-item a:hover,
+  .toc-item a:focus-visible {
+    color: var(--color-accent);
+  }
   .toc-item a[aria-current="location"] {
     color: var(--color-accent);
     font-weight: 600;
     border-inline-start-color: var(--color-accent);
   }
-  .post-toc-mobile { display: none; }
+  .post-toc-mobile {
+    display: none;
+  }
   @media (max-width: 79.999rem) {
-    .post-toc-desktop { display: none; }
-    .post-toc-mobile { display: block; }
+    .post-toc-desktop {
+      display: none;
+    }
+    .post-toc-mobile {
+      display: block;
+    }
     .toc-trigger {
       position: fixed;
       inset-inline-end: max(1rem, env(safe-area-inset-right));
@@ -81,14 +125,14 @@ const hasSections = sections.some(h => h.depth === 2);
       z-index: 35;
       display: inline-flex;
       align-items: center;
-      gap: .4rem;
-      padding: .7rem .9rem;
+      gap: 0.4rem;
+      padding: 0.7rem 0.9rem;
       border: 1px solid var(--color-border);
       border-radius: 999px;
       background: var(--color-background);
       color: var(--color-foreground);
-      box-shadow: 0 3px 18px rgb(0 0 0 / .14);
-      font-size: .85rem;
+      box-shadow: 0 3px 18px rgb(0 0 0 / 0.14);
+      font-size: 0.85rem;
     }
     .toc-dialog {
       position: fixed;
@@ -103,13 +147,29 @@ const hasSections = sections.some(h => h.depth === 2);
       background: var(--color-background);
       color: var(--color-foreground);
     }
-    .toc-dialog::backdrop { background: rgb(0 0 0 / .48); }
-    .toc-dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .7rem; }
-    .toc-close { border: 1px solid var(--color-border); padding: .4rem .7rem; border-radius: .5rem; }
-    .toc-dialog .toc-item a { font-size: .95rem; padding-block: .55rem; }
+    .toc-dialog::backdrop {
+      background: rgb(0 0 0 / 0.48);
+    }
+    .toc-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.7rem;
+    }
+    .toc-close {
+      border: 1px solid var(--color-border);
+      padding: 0.4rem 0.7rem;
+      border-radius: 0.5rem;
+    }
+    .toc-dialog .toc-item a {
+      font-size: 0.95rem;
+      padding-block: 0.55rem;
+    }
   }
   @media (max-width: 47.999rem) {
-    .toc-trigger { bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+    .toc-trigger {
+      bottom: calc(6.5rem + env(safe-area-inset-bottom));
+    }
   }
 </style>
 
@@ -118,40 +178,59 @@ const hasSections = sections.some(h => h.depth === 2);
     const root = document.querySelector<HTMLElement>("[data-post-toc]");
     if (!root || root.dataset.initialized === "true") return;
     root.dataset.initialized = "true";
+
     const dialog = root.querySelector<HTMLDialogElement>(".toc-dialog");
     const trigger = root.querySelector<HTMLButtonElement>(".toc-trigger");
     const close = root.querySelector<HTMLButtonElement>(".toc-close");
-    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>("[data-toc-link]"));
+    const links = Array.from(
+      root.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")
+    );
     const headings = [...new Set(links.map(link => link.dataset.tocLink))]
       .map(id => id && document.getElementById(id))
       .filter((node): node is HTMLElement => !!node);
+
     const activate = () => {
       let active = headings[0]?.id;
       for (const heading of headings) {
         if (heading.getBoundingClientRect().top <= 120) active = heading.id;
       }
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 4
+      ) {
         active = headings[headings.length - 1]?.id;
       }
       links.forEach(link => {
-        if (link.dataset.tocLink === active) link.setAttribute("aria-current", "location");
-        else link.removeAttribute("aria-current");
+        if (link.dataset.tocLink === active) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
       });
     };
+
     let frame = 0;
     const onScroll = () => {
       if (frame) return;
-      frame = requestAnimationFrame(() => { frame = 0; activate(); });
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        activate();
+      });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     trigger?.addEventListener("click", () => dialog?.showModal());
     close?.addEventListener("click", () => dialog?.close());
-    dialog?.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+    dialog?.addEventListener("click", event => {
+      if (event.target === dialog) dialog.close();
+    });
     dialog?.addEventListener("close", () => trigger?.focus());
-    links.forEach(link => link.addEventListener("click", () => {
-      if (dialog?.open) dialog.close();
-    }));
+    links.forEach(link =>
+      link.addEventListener("click", () => {
+        if (dialog?.open) dialog.close();
+      })
+    );
+
     const observer = new MutationObserver(() => {
       if (root.isConnected) return;
       window.removeEventListener("scroll", onScroll);
