@@ -6,11 +6,11 @@ const { headings } = Astro.props;
 
 <div class="post-responsive-layout">
   <div class="post-reading-column">
-    <PostToc {headings} />
+    <PostToc {headings} variant="mobile" />
     <slot />
   </div>
   <div class="post-toc-column">
-    <PostToc {headings} />
+    <PostToc {headings} variant="desktop" />
   </div>
 </div>
 
