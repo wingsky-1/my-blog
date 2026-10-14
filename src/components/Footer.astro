@@ -18,13 +18,15 @@ const currentYear = new Date().getFullYear();
   {...attrs}
 >
   <div
-    class="border-border flex flex-col items-center justify-between gap-x-4 gap-y-2 border-t py-5 sm:flex-row-reverse"
+    class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
   >
     <Socials />
-    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-sm sm:justify-start">
-      <span>{t.footer.copyright} &#169; {currentYear} {t.footer.allRightsReserved}</span>
-      <span class="text-muted-foreground text-xs">
-        <span aria-hidden="true" class="hidden sm:inline">· </span>
+    <div class="my-2 flex flex-col flex-wrap items-center sm:flex-row">
+      <span>{t.footer.copyright} &#169; {currentYear}</span>
+      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
+      <span>{t.footer.allRightsReserved}</span>
+      <span class="text-muted-foreground text-xs sm:ms-2">
+        <span aria-hidden="true">·</span>
         基于
         <a
           class="hover:text-accent underline underline-offset-2"
