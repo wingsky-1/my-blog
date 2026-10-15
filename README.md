@@ -15,7 +15,7 @@
 
 ## 部署
 
-Cloudflare Pages 已连接 GitHub，生产分支为 `main`，构建命令 `pnpm build`，输出目录为 `dist`。目前自定义域名尚未绑定。
+Cloudflare Pages 已连接 GitHub，生产分支为 `main`，构建命令 `pnpm build`，输出目录为 `dist`。正式站点：[wingsky.ren](https://wingsky.ren/)。域名通过 Cloudflare DNS 托管并绑定到 Pages 项目 `my-blog`；旧域名保留作迁移过渡。
 
 ## 安全
 
