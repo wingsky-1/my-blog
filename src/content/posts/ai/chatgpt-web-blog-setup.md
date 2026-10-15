@@ -230,7 +230,7 @@ Dependabot 除了安全修复，也会按计划检查普通版本。哪怕只是
 
 Pages 会提供一个 `pages.dev` 地址，但既然是个人博客，肯定还是想用自己的域名。
 
-最后选了 `blog.唐意.top`，根域名留着以后用。
+最后选了 `wingsky.ren` 作为博客的正式域名。
 
 GPT 直接调用 Cloudflare 接口添加自定义域名，创建 CNAME，等待域名验证和 HTTPS 证书生效。
 
