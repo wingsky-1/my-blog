@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="990" viewBox="0 0 720 990" role="img" aria-labelledby="title desc">
+<title id="title">Z2Pro NAS 的子网路由身份</title>
+<desc id="desc">远程手机经 WireGuard 与 NAS 建立 Tailnet 连接，NAS 把家庭私有网段的业务流量转发到没有安装 Tailscale 的设备；Headscale 的批准是独立的控制流程。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#64748b"/></marker></defs>
+<rect width="720" height="990" rx="22" fill="#f8fafc"/>
+<g font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif" fill="#0f172a">
+<text x="360" y="48" font-size="26" font-weight="700" text-anchor="middle">NAS 是家庭子网路由，不是出口节点</text>
+<text x="360" y="82" font-size="17" fill="#475569" text-anchor="middle">家庭设备不需要逐一安装 Tailscale</text>
+<rect x="195" y="113" width="330" height="90" rx="16" fill="#dbeafe" stroke="#93c5fd" stroke-width="2"/>
+<text x="360" y="153" font-size="25" font-weight="700" text-anchor="middle">异地手机</text>
+<text x="360" y="179" font-size="17" text-anchor="middle">一个 sing-box / Tailscale 入口</text>
+<line x1="360" y1="203" x2="360" y2="273" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="392" y="248" font-size="16" fill="#475569">WireGuard P2P / DERP</text>
+<rect x="130" y="283" width="460" height="132" rx="16" fill="#dcfce7" stroke="#86efac" stroke-width="2"/>
+<text x="360" y="328" font-size="26" font-weight="700" text-anchor="middle">Z2Pro · Tailscale 容器</text>
+<text x="360" y="361" font-size="18" text-anchor="middle">加入 Tailnet，发布家庭网段</text>
+<text x="360" y="391" font-size="17" fill="#475569" text-anchor="middle">用户态 Netstack 转发业务连接</text>
+<line x1="360" y1="415" x2="360" y2="491" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="385" y="455" font-size="17" fill="#475569">家庭 LAN</text>
+<rect x="55" y="501" width="610" height="200" rx="18" fill="#ecfccb" stroke="#bef264" stroke-width="2"/>
+<text x="360" y="541" font-size="24" font-weight="700" text-anchor="middle">原来的家庭局域网</text>
+<rect x="82" y="564" width="260" height="93" rx="12" fill="#fff" stroke="#a3e635" stroke-width="2"/>
+<text x="212" y="602" font-size="20" font-weight="700" text-anchor="middle">开发机</text>
+<text x="212" y="633" font-size="16" text-anchor="middle">无需改变默认网关</text>
+<rect x="376" y="564" width="260" height="93" rx="12" fill="#fff" stroke="#a3e635" stroke-width="2"/>
+<text x="506" y="602" font-size="20" font-weight="700" text-anchor="middle">部署机 / 其他设备</text>
+<text x="506" y="633" font-size="16" text-anchor="middle">继续使用 LAN 地址</text>
+<rect x="55" y="755" width="610" height="172" rx="16" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+<text x="360" y="793" font-size="22" font-weight="700" text-anchor="middle">另一条线：Headscale 控制面</text>
+<text x="360" y="831" font-size="18" text-anchor="middle">NAS 发布路由 → 控制面批准 → 手机接受路由</text>
+<text x="360" y="869" font-size="18" text-anchor="middle">即使状态显示 Serving，也要测试真实 TCP 服务</text>
+<text x="360" y="906" font-size="16" fill="#475569" text-anchor="middle">这不是互联网默认出口，也不是家庭主路由</text>
+</g></svg>
