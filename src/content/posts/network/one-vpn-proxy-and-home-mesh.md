@@ -3,7 +3,7 @@ title: "手机只用一个 VPN，同时搞定海外代理和家庭异地组网"
 description: "把 sing-box 的代理分流和内嵌 Tailscale Endpoint 放进同一套手机配置：在家直连、出门走 Mesh，顺便聊聊 Headscale、NAS 子网路由与海外出口的架构取舍。"
 pubDatetime: 2026-10-18T19:00:00+08:00
 tags: ["网络", "sing-box", "Headscale", "Tailscale", "WireGuard"]
-featured: false
+featured: true
 draft: false
 ---
 
@@ -11,7 +11,7 @@ draft: false
 
 一个是海外网络：国内网站正常直连，需要代理的服务交给海外节点；其中部分 AI 服务还希望走一台单独的家宽出口。
 
-另一个是回家：不管人在家里还是在外面，打开 NAS、开发机或者家庭服务，都尽量使用同一套 `家庭设备原来的局域网地址` 地址，不用记两种入口。
+另一个是回家：不管人在家里还是在外面，打开 NAS、开发机或者家庭服务，都尽量使用家庭设备原来的局域网地址，不用记两种入口。
 
 这两个需求单独做并不难。麻烦在于，**手机只想开一个 VPN**。
 

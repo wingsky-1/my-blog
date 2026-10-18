@@ -35,7 +35,7 @@ Z2Pro 的 Docker 足以承载一个常驻组网容器，配置和运行状态也
 
 在用户态下，`tailscaled` 依然使用 WireGuard 连接 Tailnet 对端，但收到连接以后，它在进程内通过 Netstack 重建 TCP/UDP 连接，再由 NAS 连接家庭服务。这种方式不需要依赖同一套内核 TUN 转发与 NAT 规则。对主要访问家庭 Web 服务的低并发场景，性能损失比兼容性折腾更容易接受。
 
-下面的 Compose 是按这次最终运行方式和 [Tailscale 官方 Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params) 整理的**脱敏示例**，不是我生产环境的原样配置。准备好 NAS 的 Docker/Compose、可达的 Headscale 控制面，以及家庭网段 CIDR 后，在 NAS 的 Docker 项目目录创建 `compose.yaml`：
+下面的 Compose 是按这次最终运行方式和 [Tailscale 官方 Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params) 整理的**脱敏示例**，不是生产环境的原样配置。准备好极空间的容器管理功能、可达的 Headscale 控制面，以及家庭网段 CIDR 后，可以在极空间 Docker 管理界面新建 Compose 项目，并填入以下内容。不需要先通过 SSH 到 NAS 宿主机执行 Docker 命令：
 
 ```yaml
 services:
@@ -55,7 +55,7 @@ services:
       - ./tailscale-state:/var/lib/tailscale
 ```
 
-在同目录的 `.env` 中配置 `HOME_SUBNET`（你的家庭网段 CIDR）及 `HEADSCALE_URL`（你自己的 Headscale HTTPS 地址），这里不展示真实值。几个参数各有用途：
+在 Compose 项目支持的环境变量设置中填写 `HOME_SUBNET`（家庭网段 CIDR）和 `HEADSCALE_URL`（自建 Headscale 的 HTTPS 地址）；如果极空间当前界面不提供这项设置，就先在本地将示例中的变量占位符替换为你自己的值，再提交项目。这里不展示任何生产地址或密钥。几个参数各有用途：
 
 - `TS_USERSPACE` 使用用户态网络；`network_mode: host` 让容器共享 NAS 的网络环境，但它**不等于启用内核转发**。
 - `TS_ROUTES` 用来公布家庭网段；这只完成了路由的「申请」，还需要在 Headscale 审批。
@@ -64,32 +64,28 @@ services:
 
 选用用户态时，不必照搬内核 TUN 教程给容器挂载 `/dev/net/tun`、添加 `NET_ADMIN` 或直接启用特权模式；那是另一条运行路径的权限需求。本文的 `stable` 是会变化的镜像标签，正式维护时应固定自己验收过的镜像版本。
 
-启动并看日志：
+完成配置后，在极空间容器管理界面启动这个 Compose 项目。先看容器的运行状态和日志，确认没有启动参数、DNS 或认证错误。
 
-```bash
-docker compose config
-docker compose up -d
-docker compose logs --tail=80 tailscale-subnet
-```
+**后文涉及 NAS 上的 Tailscale 操作，默认都在极空间界面的「容器终端」执行**：进入 `tailscale-subnet` 容器，打开 Shell，再直接输入 `tailscale` 命令，不必为每条命令从宿主机额外指定容器。容器启动、重建和查看日志则继续在极空间界面操作。
 
 ## 注册到 Headscale，然后批准子网路由
 
-第一次运行时，容器处于 Running 不代表已经注册成功。需要根据日志与 Headscale 的注册机制完成设备认证；如果需要交互式登录，可以执行：
+第一次运行时，容器显示运行中不代表已经注册成功。可以在极空间界面先查看容器日志，再进入 **`tailscale-subnet` 的容器终端**。后面的命令都从这个容器 Shell 内执行，例如需要手动发起交互式登录时：
 
-```bash
-docker exec -it tailscale-subnet tailscale login \
-  --login-server="<你的 Headscale HTTPS 地址>"
+```sh
+tailscale login --login-server="<你的 Headscale HTTPS 地址>"
 ```
 
 交互式注册可能还需要在 Headscale 管理侧确认设备，具体按 [官方注册流程](https://headscale.net/stable/usage/getting-started/) 处理。这里不放 PreAuthKey、认证链接或任何生产控制面地址。
 
-注册成功后，先检查容器是否具有 Tailnet 身份：
+注册成功后，在**容器终端**直接检查 Tailnet 身份和地址：
 
-```bash
-docker exec tailscale-subnet tailscale status
-docker exec tailscale-subnet tailscale ip
-docker compose logs --tail=80 tailscale-subnet
+```sh
+tailscale status
+tailscale ip
 ```
+
+如果登录失败，先返回极空间界面的容器日志定位原因；不要把容器「运行中」当作已经登录的证据。
 
 **下一步容易遗漏：节点发布了路由，控制面还要批准。** 在 Headscale 所在环境执行：
 
@@ -101,7 +97,7 @@ headscale nodes approve-routes \
 headscale nodes list-routes
 ```
 
-注意：后两处变量需事先在执行命令的 Shell 中赋值；如果 Headscale 运行在容器内，应通过对应容器执行这些命令。官方也支持按策略自动审批，但个人首次搭建时手动检查发布的网段，有助于避免误放通。参见 [Headscale 路由文档](https://headscale.net/stable/ref/routes/)。
+注意：后两处变量需先在执行命令的 Shell 中赋值。这组 `headscale` 命令属于**控制面操作**，不是在 NAS 的 Tailscale 容器内运行；如果 Headscale 本身采用容器部署，直接在它自己的容器终端执行即可。官方也支持按策略自动审批，但个人首次搭建时手动检查发布的网段，有助于避免误放通。参见 [Headscale 路由文档](https://headscale.net/stable/ref/routes/)。
 
 **Approved、Available、Serving** 这三个状态表示控制面认为路由获批、有可用发布者、正在提供服务；它们不是 TCP 业务测试结果。手机端也必须接收并路由相应网段，且 ACL / Grants 允许访问。
 
@@ -114,11 +110,11 @@ headscale nodes list-routes
 3. **然后验证手机 → 家庭服务。** 使用原来的家庭设备地址和实际服务端口，验证 HTTP、SSH 或其他明确开放的 TCP 业务。这一步才真正跨越了子网路由。
 4. **最后验证路径质量。** 业务成功后，再看 P2P 还是 DERP；「经中继可访问」也是连通，不应误判成路由失败。
 
-在 NAS 的 Docker 终端可检查：
+在 **Z2Pro 的 Tailscale 容器终端**可以直接执行：
 
-```bash
-docker exec tailscale-subnet tailscale status
-docker exec tailscale-subnet tailscale netcheck
+```sh
+tailscale status
+tailscale netcheck
 ```
 
 其中 `netcheck` 判断网络探测能力，`status` 帮助观察对等连接；它们不能代替手机真实访问家庭服务。尤其是用户态 Netstack 下，ICMP ping 的行为与完整 L3 包转发并不相同。
@@ -194,11 +190,12 @@ connect: connection refused
 可以按下面的顺序核对：
 
 ```bash
-# 先在 Shell 中设置真实的 LAN_HOST 和 SERVICE_PORT
+# 在家庭 LAN 中能运行 curl 的终端执行（不是 Tailscale 容器的必备命令）
+# 事先在当前 Shell 配置 LAN_HOST 和 SERVICE_PORT
 curl -I --connect-timeout 5 "http://${LAN_HOST}:${SERVICE_PORT}/"
 ```
 
-这里故意用变量代替具体地址；运行前要在 Shell 中设置实际的目标主机与服务端口。对于不响应 HEAD 请求的服务，也不能仅用 `curl -I` 返回的 HTTP 状态码判断连通性。
+这里故意用变量代替具体地址；运行前需在执行测试的 Shell 中设置目标主机和服务端口。Tailscale 官方容器镜像不保证预装 `curl`，所以这条命令应从 NAS 宿主环境或另一台能够访问家庭 LAN 的设备执行；也可以直接用浏览器打开已经确认存在的 HTTP 服务。对于不响应 HEAD 请求的服务，不要仅凭 `curl -I` 的状态码判断连通性。
 
 ## P2P 小优化：有 IPv6，为什么仍然走 DERP？
 
