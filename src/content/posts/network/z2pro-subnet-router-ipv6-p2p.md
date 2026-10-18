@@ -1,224 +1,185 @@
 ---
 title: "极空间 Z2Pro 子网路由实践：部署、验证与排障"
-description: "用 Docker 将极空间 NAS 纳入 Tailnet，让它承担家庭子网路由：从角色分工、Compose 部署、路由批准和连通性验收，到用户态 Netstack 排障与 IPv6 P2P 优化。"
+description: "极空间 NAS 充当 Tailnet 与家庭 LAN 的子网路由：从实际 Docker Compose、.env 和 Headscale 路由批准，到连通性验证、Netstack 取舍与 P2P 检查。"
 pubDatetime: 2026-10-18T19:05:00+08:00
 tags: ["网络", "Linux", "Tailscale", "Headscale", "Docker"]
 featured: false
 draft: false
 ---
 
-家庭里有 NAS、开发机、部署机，也有不方便安装 Tailscale 的设备。我希望手机在外面时，仍然能够使用原来的局域网地址访问它们；又不想为了远程管理，把所有应用端口都暴露在公网。
+家里有 NAS、开发机、部署机，还有一些不方便装 Tailscale 的设备。我希望手机出门以后，依然能用原来的局域网地址访问它们，但不想把每台设备的管理端口都开放到公网。
 
-和 ChatGPT 讨论家庭网络分工时，我们比较过让开发机、部署机兼任子网路由，以及交给独立低功耗设备这几种方案。最后决定利用本来就长期在线的**极空间 Z2Pro NAS**。
+和 ChatGPT 讨论家庭网络分工时，我们比较过让开发机、部署机兼职子网路由，以及交给独立低功耗设备这几种办法。最后选择了本来就在家庭 LAN 里、长期在线、支持 Docker 的**极空间 Z2Pro**。这样部署机更新或重启，也不用顺带中断远程回家的路径。
 
-它适合承担这件事，不是因为 NAS 天生就是路由器，而是因为它常开、位于家庭 LAN 内、可以运行 Docker。更重要的是，部署机维护重启时，远程回家的基础链路不会跟着中断。
+这篇主要讲 NAS 在拓扑中扮演什么角色、怎样用极空间的容器管理界面部署、怎样验证它确实能路由。至于复杂的内核和运营商排障，我只记录亲历的现象与判断方法，不写成一套需要照搬的修复脚本。
 
-这篇先讲清楚 **NAS 在拓扑中的角色和怎么部署**，再按实际经历复盘验证与排障。P2P 和 IPv6 优化放在最后，篇幅不多但保留关键证据。如果更关心为什么手机只需一个 sing-box VPN 就能同时处理代理和回家，可以先看上一篇：[手机只用一个 VPN，同时搞定海外代理和家庭异地组网](/posts/network/one-vpn-proxy-and-home-mesh/)。
+如果还没看过手机上的整体方案，可以先读上一篇：[手机只用一个 VPN，同时搞定海外代理和家庭异地组网](/posts/network/one-vpn-proxy-and-home-mesh/)。
 
-## NAS 在这套网络里究竟是什么身份？
+## 先看身份：NAS 是子网路由，不是家庭主路由
 
-![NAS 作为 Tailnet 与家庭 LAN 之间的子网路由，连接没有安装 Tailscale 的家庭设备](/images/network/nas-subnet-router-role.svg)
+![NAS 将 Tailnet 与未安装 Tailscale 的家庭设备连接起来，但不负责互联网默认出口](/images/network/nas-subnet-router-role.svg)
 
-**它首先是一个普通 Tailnet 节点。** 安装 Tailscale 并注册到 Headscale 后，远端设备能够识别 NAS 的 Tailnet 身份。但此时手机最多只能访问 NAS 本身，还不能因此访问整个家庭 LAN。
+这几个角色很容易混淆：
 
-**它进一步是子网路由（Subnet Router）。** NAS 在 Tailnet 中声明：「这一段家庭局域网，我能到达。」控制面批准后，远端设备才有机会将发往家庭网段的流量交给它。NAS 再连接到没有安装 Tailscale 的开发机、家庭服务或其他设备。家中这些设备不需要因此改变默认网关，也不必每台都装 Tailscale。
+- **Tailnet 节点**：NAS 运行 Tailscale 并注册到 Headscale，先获得自己的组网身份。加入 Tailnet 不代表远端手机能直接访问整个家庭 LAN。
+- **子网路由（Subnet Router）**：NAS 额外发布一段家庭网段；经 Headscale 批准、手机接受路由后，远端才可以通过 NAS 访问该网段内没有安装 Tailscale 的设备。这才是本文的目标。
+- **出口节点（Exit Node）**：接管其他设备的默认互联网流量。我并没有让 NAS 做这件事；海外代理仍走独立代理出口。
 
-**它不是出口节点（Exit Node）。** 出口节点用于接管其他设备的互联网默认流量；子网路由只公布指定的私有网段。我的海外代理仍由另一组节点处理，NAS 不参与互联网出口分流。
+所以它不需要替代家庭路由器，也不需要让每台局域网设备修改默认网关。它负责的是**从 Tailnet 进入家庭 LAN 的那段连接**。Headscale 则管理节点注册、路由批准和访问策略，属于控制面。
 
-这也解释了为什么我要把子网路由独立出来：Headscale 管**身份、策略和路由批准**；NAS 管**从 Tailnet 进入家庭 LAN 的业务连接**；开发机和部署机继续做自己的事。远程访问这条路径不必经过海外代理入口。
+这套分工还有一个好处：NAS、开发机、部署机各管一摊。即使某台部署机停机维护，NAS 仍能保持组网入口在线；反过来，NAS 的组网问题也不会被误认为是代理节点出了故障。
 
-容易混淆的是：「NAS 加入 Tailnet」「NAS 发布子网」「Headscale 批准路由」「手机真实访问到家庭服务」是四个不同状态，不能只完成前两个就宣布成功。
+## 在极空间创建容器项目
 
-## 为什么最终采用 Docker + 用户态 Netstack？
+![用户态 Netstack 和内核 TUN 子网转发路径的区别](/images/network/nas-kernel-vs-netstack.svg)
 
-Z2Pro 的 Docker 足以承载一个常驻组网容器，配置和运行状态也容易集中管理。最初我尝试的是常见的内核态 TUN 路径，后来遇到了 NAS 内核与防火墙规则的兼容性问题，才保留了用户态 Netstack。
+一开始我使用过内核态 TUN 转发，遇到 NAS 内核及防火墙规则兼容性问题。最终真正测通家庭 TCP 服务的是 **Tailscale 用户态 Netstack**，也就是 `TS_USERSPACE: "true"`。它不依赖此前那条内核 TUN、FORWARD 和 NAT 处理链，但主要处理 TCP/UDP 连接，不完全等同于透明的 L3 路由器。
 
-在用户态下，`tailscaled` 依然使用 WireGuard 连接 Tailnet 对端，但收到连接以后，它在进程内通过 Netstack 重建 TCP/UDP 连接，再由 NAS 连接家庭服务。这种方式不需要依赖同一套内核 TUN 转发与 NAT 规则。对主要访问家庭 Web 服务的低并发场景，性能损失比兼容性折腾更容易接受。
+下面的 Compose 保留了我实际使用过的服务名称、主机名、认证选项、网络模式、状态目录及设备权限。**只有家庭网段、Headscale 地址和认证密钥改成了变量**，避免把真实环境直接写到博客里。
 
-下面的 Compose 是按这次最终运行方式和 [Tailscale 官方 Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params) 整理的**脱敏示例**，不是生产环境的原样配置。准备好极空间的容器管理功能、可达的 Headscale 控制面，以及家庭网段 CIDR 后，可以在极空间 Docker 管理界面新建 Compose 项目，并填入以下内容。不需要先通过 SSH 到 NAS 宿主机执行 Docker 命令：
+在极空间的 Docker / 容器管理界面中新建 Compose 项目，准备 `compose.yaml`：
 
 ```yaml
 services:
-  tailscale-subnet:
+  tailscale:
     image: tailscale/tailscale:stable
     container_name: tailscale-subnet
-    hostname: nas-subnet-router
+    hostname: z2pro-router
     network_mode: host
-    restart: unless-stopped
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
     environment:
-      TS_STATE_DIR: /var/lib/tailscale
       TS_USERSPACE: "true"
-      TS_ROUTES: "${HOME_SUBNET:?set HOME_SUBNET}"
-      TS_EXTRA_ARGS: "--login-server=${HEADSCALE_URL:?set HEADSCALE_URL}"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTH_ONCE: "true"
+      TS_AUTHKEY: "${HEADSCALE_AUTH_KEY:-}"
+      TS_HOSTNAME: z2pro-router
+      TS_ROUTES: "${HOME_SUBNET:?请在 .env 中填写家庭网段}"
       TS_ACCEPT_DNS: "false"
+      TS_EXTRA_ARGS: "--login-server=${HEADSCALE_URL:?请在 .env 中填写控制面地址}"
+
     volumes:
-      - ./tailscale-state:/var/lib/tailscale
+      - ./state:/var/lib/tailscale
+
+    restart: unless-stopped
 ```
 
-在 Compose 项目支持的环境变量设置中填写 `HOME_SUBNET`（家庭网段 CIDR）和 `HEADSCALE_URL`（自建 Headscale 的 HTTPS 地址）；如果极空间当前界面不提供这项设置，就先在本地将示例中的变量占位符替换为你自己的值，再提交项目。这里不展示任何生产地址或密钥。几个参数各有用途：
+同一个项目再创建 `.env` 文件，并根据自己的环境替换占位内容：
 
-- `TS_USERSPACE` 使用用户态网络；`network_mode: host` 让容器共享 NAS 的网络环境，但它**不等于启用内核转发**。
-- `TS_ROUTES` 用来公布家庭网段；这只完成了路由的「申请」，还需要在 Headscale 审批。
-- `TS_STATE_DIR` 配合目录挂载保存节点身份，避免每次容器重建都变成一个新设备。状态目录含有敏感身份数据，不要公开上传。
-- `TS_EXTRA_ARGS` 让容器登录自建控制面；`TS_ACCEPT_DNS: "false"` 是为了不在这一步引入额外的 DNS 变量。
+```dotenv
+HOME_SUBNET=<你的家庭网段 CIDR>
+HEADSCALE_URL=https://headscale.example.com
+HEADSCALE_AUTH_KEY=
+```
 
-选用用户态时，不必照搬内核 TUN 教程给容器挂载 `/dev/net/tun`、添加 `NET_ADMIN` 或直接启用特权模式；那是另一条运行路径的权限需求。本文的 `stable` 是会变化的镜像标签，正式维护时应固定自己验收过的镜像版本。
+极空间的容器管理界面可以管理项目文件；`.env` 应与 Compose 文件配套使用，注意实际项目的文件路径和变量加载方式。上面的尖括号和示例域名都是占位符，**不要原样拿去启动**。如果准备使用 Headscale 预授权密钥自动注册，再给 `HEADSCALE_AUTH_KEY` 填入有效密钥；不使用时可以留空，改走首次交互式注册。
 
-完成配置后，在极空间容器管理界面启动这个 Compose 项目。先看容器的运行状态和日志，确认没有启动参数、DNS 或认证错误。
+这个 Compose 有几项值得说明：
 
-**后文涉及 NAS 上的 Tailscale 操作，默认都在极空间界面的「容器终端」执行**：进入 `tailscale-subnet` 容器，打开 Shell，再直接输入 `tailscale` 命令，不必为每条命令从宿主机额外指定容器。容器启动、重建和查看日志则继续在极空间界面操作。
+- **`TS_ROUTES`**：声明自己能够到达哪个家庭网段，只负责发布，Headscale 仍需要批准。
+- **`TS_AUTHKEY`、`TS_AUTH_ONCE`**：有有效密钥时支持首次自动认证；`TS_AUTH_ONCE: "true"` 配合持久化状态，避免容器每次重启都重复登录。密钥为空并不表示已经注册成功。
+- **`TS_STATE_DIR` 与 `./state`**：保存节点身份。重建容器时保留此目录，别把它当作可随意删除的缓存。
+- **`TS_HOSTNAME`**：明确 Tailnet 中展示的节点名称；Compose 里的 `hostname` 则是容器主机名，两者碰巧设为相同的值。
+- **`network_mode: host`**：使用 NAS 的网络环境；不代表启用了内核包转发，也不是让 NAS 成为互联网出口。
+- **`TS_ACCEPT_DNS: "false"`**：暂时不接收 Tailnet 下发的 DNS 设置，减少部署变量。
 
-## 注册到 Headscale，然后批准子网路由
+有一点需要特别交代：上面的 **`NET_ADMIN`、`NET_RAW` 和 `/dev/net/tun` 是最初测试内核态转发时留下的配置**。官方 Tailscale 文档说明，在当前 `TS_USERSPACE: "true"` 模式下，一般无需按内核模式挂载 TUN 和附加这些权限。为了忠实呈现实际验收过的 Compose，这里没有悄悄删除它们；但它们**不是推荐所有用户照搬的用户态必需项**。后续可以在备份状态目录、做好业务验证的前提下单独精简权限，本文不把未经复验的改动描述成已完成。
 
-第一次运行时，容器显示运行中不代表已经注册成功。可以在极空间界面先查看容器日志，再进入 **`tailscale-subnet` 的容器终端**。后面的命令都从这个容器 Shell 内执行，例如需要手动发起交互式登录时：
+此外，`stable` 镜像标签会随时间更新。如果长期使用，值得把实际验收的镜像版本记录下来，方便回滚。`.env` 文件与 `./state` 目录可能包含敏感信息，**不要提交到公开仓库，也不要原样贴进 AI 对话**。
+
+启动项目、查看运行状态及日志，直接使用极空间的容器管理界面即可。日常管理不必通过 NAS 宿主机执行 Docker 命令。
+
+## 首次注册与批准路由
+
+容器显示 Running，仅代表进程启动，不代表已经加入 Tailnet。
+
+如果 `.env` 提供了有效的预授权密钥，先到 Headscale 检查节点是否注册成功；如果没有密钥或自动注册没有完成，进入极空间界面的 **`tailscale-subnet` 容器终端**，按需要手动登录：
 
 ```sh
 tailscale login --login-server="<你的 Headscale HTTPS 地址>"
 ```
 
-交互式注册可能还需要在 Headscale 管理侧确认设备，具体按 [官方注册流程](https://headscale.net/stable/usage/getting-started/) 处理。这里不放 PreAuthKey、认证链接或任何生产控制面地址。
-
-注册成功后，在**容器终端**直接检查 Tailnet 身份和地址：
+完成 Headscale 侧的节点注册后，继续在**容器终端**执行：
 
 ```sh
 tailscale status
 tailscale ip
 ```
 
-如果登录失败，先返回极空间界面的容器日志定位原因；不要把容器「运行中」当作已经登录的证据。
+容器命令不用写成 `docker exec`，因为此时已经在 Tailscale 容器内部。具体的首次注册方式可参考 [Headscale 官方入门文档](https://headscale.net/stable/usage/getting-started/)。
 
-**下一步容易遗漏：节点发布了路由，控制面还要批准。** 在 Headscale 所在环境执行：
+下一步是**路由批准**。Tailscale 通过 `TS_ROUTES` 发布网段，Headscale 再批准该网段；这是两个独立动作。在 **Headscale 控制面所在的主机或其容器终端**检查：
 
-```bash
+```sh
 headscale nodes list-routes
-# 识别出 NAS 节点后，再使用实际节点 ID 和家庭网段：
 headscale nodes approve-routes \
-  --identifier "${NODE_ID}" --routes "${HOME_SUBNET}"
+  --identifier "<NAS 节点 ID>" \
+  --routes "<家庭网段 CIDR>"
 headscale nodes list-routes
 ```
 
-注意：后两处变量需先在执行命令的 Shell 中赋值。这组 `headscale` 命令属于**控制面操作**，不是在 NAS 的 Tailscale 容器内运行；如果 Headscale 本身采用容器部署，直接在它自己的容器终端执行即可。官方也支持按策略自动审批，但个人首次搭建时手动检查发布的网段，有助于避免误放通。参见 [Headscale 路由文档](https://headscale.net/stable/ref/routes/)。
+批准前先核对节点身份和网段，不能因为路由是新发布的就无条件放行。若已配置 Headscale 的自动审批策略，可能无需手动执行批准操作。详情见 [Headscale 子网路由文档](https://headscale.net/stable/ref/routes/)。
 
-**Approved、Available、Serving** 这三个状态表示控制面认为路由获批、有可用发布者、正在提供服务；它们不是 TCP 业务测试结果。手机端也必须接收并路由相应网段，且 ACL / Grants 允许访问。
+在控制面看到 **Approved、Available、Serving** 后，仍要确认手机已接受相应路由，且访问策略允许；这三个状态只说明路由发布与审批情况，不能证明后端业务已经连通。
 
-## 四步验证：不能只看节点在线
+## 验证的顺序，比排障命令更重要
 
-我现在会按照真实数据路径依次验证，而不是先去改防火墙。
+我把验收分为四步，避免一开始就陷入防火墙或 NAT 细节。
 
-1. **先验证 NAS → 家庭 LAN。** 在 NAS 上访问家中已经确认开放的服务端口。服务要真实存在，且 NAS 本身能访问。
-2. **再验证手机 → NAS。** 从外部网络测试 Tailnet 节点之间的通信，确认手机与 NAS 都已经在同一个受控网络中。
-3. **然后验证手机 → 家庭服务。** 使用原来的家庭设备地址和实际服务端口，验证 HTTP、SSH 或其他明确开放的 TCP 业务。这一步才真正跨越了子网路由。
-4. **最后验证路径质量。** 业务成功后，再看 P2P 还是 DERP；「经中继可访问」也是连通，不应误判成路由失败。
+1. **NAS 能访问家庭服务吗？** 先用 LAN 内一台可信设备确认家庭服务的实际地址、端口和协议，再检查 NAS 到该服务的可达性。
+2. **手机能识别 NAS 吗？** 手机加入同一个 Tailnet 后，检查节点可达性。此时只验证组网，不代表整个家庭 LAN 已打通。
+3. **手机从外面能打开家庭服务吗？** 断开家庭 Wi-Fi，用设备原有的局域网地址打开一个确定正在监听的 TCP 服务。这一步才是真正的子网路由验收。
+4. **连接走 P2P 还是 DERP？** 先确保业务可用，再评估是否直连、延迟如何。中继能正常访问也不应被当作业务故障。
 
-在 **Z2Pro 的 Tailscale 容器终端**可以直接执行：
+在 NAS 的 **Tailscale 容器终端**可以直接运行：
 
 ```sh
 tailscale status
 tailscale netcheck
 ```
 
-其中 `netcheck` 判断网络探测能力，`status` 帮助观察对等连接；它们不能代替手机真实访问家庭服务。尤其是用户态 Netstack 下，ICMP ping 的行为与完整 L3 包转发并不相同。
+`netcheck` 只反映网络探测能力；要判断对端是否真正直连，还需结合 `status` 或实际 `tailscale ping` 输出。最可靠的连通性证据仍是手机打开真实家庭服务，而不是一个绿色的在线标识。
 
-## 实际排障：路由已经 Serving，为什么手机还是进不了 LAN？
+## 这次遇到的两个坑
 
-当时环境有这些确定的事实：
+第一个是**路由已批准，但家庭服务访问失败**。
 
-- NAS 以 Docker **host 网络模式**运行 Tailscale，并发布家庭网段。
-- Headscale 显示该路由 **Approved、Available、Serving**。
-- NAS 和 Android 之间的 Tailnet 通信正常；NAS 自身也能访问家庭 LAN。
-- Linux 的 `net.ipv4.ip_forward=1`；检查过的路由决策符合预期。
-- NAS 使用的 `iptables-legacy` 环境缺少 `mangle` 表，Tailscale 安装 `connmark` 相关规则出现错误。
-- 排查时看到 `ts-forward` 计数增加，但 `ts-postrouting` 的 MASQUERADE 计数为零；对应 Android 到 LAN 的连接跟踪记录也没有查到。
+我最初的内核态方案在 NAS 上遇到 `iptables-legacy` 的 `mangle` 表、`connmark` 规则安装异常。路由在 Headscale 里已经显示 Serving，业务却仍然不通。换成用户态 Netstack 以后，家庭 TCP 服务最终成功访问。
 
-这些信息合在一起，比单看一个绿色的路由状态有用得多。
+这说明当时的内核转发路径确实有兼容性信号，但**不足以证明某一条规则就是唯一根因**。我没有完成完整抓包，因此也不把这个现象包装成对所有极空间设备都适用的结论。
 
-**Approved** 说明控制面批准发布，**Available / Serving** 说明控制面认为这条路由当前可以服务。它们不负责证明 NAS 的内核包转发、NAT 和目标服务全都能正确工作。
+第二个更简单：换成 Netstack 后，我一度看到 `connection refused`，还以为用户态也失败了。结果是自己测错了端口，目标主机压根没监听那个服务。改成真实开放的端口就通了。
 
-我最初怀疑是 NAS 的内核/防火墙兼容问题，尤其是 `mangle` 表缺失导致 Tailscale 的规则没有完整装好。
+![内核转发与用户态 Netstack 的数据处理区别](/images/network/nas-kernel-vs-netstack.svg)
 
-但这里不能写成「已经找到唯一根因」。
+所以我现在更倾向于先确认服务、再确认组网路由，最后才去查内核和防火墙。复杂问题可以和 AI 一起分析，但最好先把问题范围缩小，别一遇到不通就重装容器。
 
-`ts-forward` 有计数，不等于数据包已经顺利进入预期的 POSTROUTING；MASQUERADE 为零也不单独证明一定是哪条规则阻断。连接跟踪没有对应记录，还可能是数据包在更早的链路被处理、匹配条件不对，或者观测方法没有覆盖到实际路径。当时没有做完整的双向抓包和内核跟踪，无法把所有可能性排除。
+例如整理好**已脱敏**的 Compose、容器日志、路由审批状态和一次真实业务访问结果，再让 AI 按「控制面、客户端路由、NAS 到 LAN、P2P/DERP」四层给出排查顺序。**不要提交预授权密钥、节点私钥、真实公网地址或包含敏感信息的完整日志**；AI 给出的命令也要确认适用于 NAS 的系统环境后再执行。
 
-更稳妥的结论是：**内核态转发路径存在可观测的异常，且当前 NAS 环境里有明确的 iptables 兼容性信号。** 足以支持尝试另一种实现，而不够支持宣告「缺 mangle 就是唯一根因」。
+## P2P 的一点后续优化
 
-## 换一条路：从内核 TUN 到用户态 Netstack
+![IPv4/IPv6 P2P、STUN 探测与 DERP 回退的区别](/images/network/ipv6-p2p-derp-paths.svg)
 
-![内核态 TUN 的 L3 转发路径与用户态 Netstack 的 TCP UDP 连接重建路径](/images/network/nas-kernel-vs-netstack.svg)
+实际业务访问恢复后，我才继续看链路质量。最初经常回退自建 DERP，尽管设备已经有 IPv6 出站，`netcheck` 仍曾显示 `IPv6: no`。
 
-Tailscale 的子网路由在 Linux 上主要有两种工作方式。
+后来发现，提供相关服务的公开域名缺少 AAAA 记录，而服务本身已有 IPv6 监听能力。补上 AAAA 并保持 **DNS only（灰云）** 后，IPv6 STUN 探测变成可用；之后的实际对等连接状态也多次出现 **`direct [IPv6]:port`**。
 
-**内核态模式**：Tailscale 处理 WireGuard 加解密，解密后的 IP 数据包进入 Linux 网络栈，由内核执行路由、转发、过滤与必要的 SNAT。TCP 连接的端到端语义得以保留，能处理更多 IP 协议，通常更适合流量高、连接多的专用 Linux 路由器。
+这两个证据不等价：`netcheck IPv6: yes` 说明探测成功，`direct` 才说明观察到了节点之间的直连。能直连也不保证每次都低延迟，公网 UDP、防火墙、运营商互联和移动网络都会影响实际效果。
 
-**用户态模式**：使用 gVisor Netstack，在进程内处理来自 Tailnet 的流量。对于 TCP/UDP，Tailscale 终止原连接，再由 NAS 建立到目标 LAN 设备的新连接，将两端数据关联转发。它不用依赖同样的内核 TUN、FORWARD 与 NAT 路径来完成这些连接。
+目前没有足够的长期数据支持增加更多 DERP 中继，所以先保持 P2P 优先、现有 DERP 兜底，不为一次高延迟继续增加维护成本。
 
-这是 **L3 IP 转发**与**L4 TCP/UDP 连接代理**的区别。用户态并不是「所有协议原样过一遍」的等价替换。官方文档指出，用户态模式不支持任意 IP 协议（例如 SCTP）；ping 是特殊的重建式行为，不能拿用户态 ping 的结果精确判断端到端 ICMP 延迟。
+## 最后
 
-参考：[Tailscale 官方：Kernel vs. netstack subnet routing](https://tailscale.com/kb/1177/kernel-vs-userspace-routers)。
+对这台 Z2Pro，最重要的不是某条 iptables 命令，而是明确它只负责一件事：**把 Tailnet 与家庭局域网连接起来**。
 
-在 Z2Pro 上，最后采用的关键是前文 Compose 里的 `TS_USERSPACE: "true"` 与 `TS_ROUTES`。这里不再重复一份容易与正式示例产生歧义的配置。启动后可以从进程参数确认运行模式：
+最终选用用户态 Netstack，是这次个人设备条件下实际测通的一种取舍，不是所有 NAS 的性能最优解。把 Docker 配置与 `.env` 保存好，检查节点身份和路由批准，再用手机访问一个真实的家庭 TCP 服务，已经足够构成一条清晰的部署验收路径。
 
-```text
-tailscaled --tun=userspace-networking
-```
+后续如果再遇到异常，先按层次收集证据，再与 AI 协作缩小范围，比照搬别人的防火墙修复脚本更可靠。
 
-这次访问家庭 TCP 服务成功了。结合之前内核路径的异常，我选择暂时保留用户态，而不是为了在 NAS 的定制内核上恢复某组 iptables 规则继续折腾。
-
-这并不说明用户态模式必然比内核态好。它有连接重建、协议范围和潜在 CPU 开销的限制；对高并发、高带宽、需要端到端 IP 语义的场景，优先选择可靠的内核态路由器仍然有充分理由。
-
-但我的日常流量主要是手机偶尔打开家中 Web 服务、NAS 页面或者维护入口。在这种低并发、小规模场景下，**简单可用比把理论吞吐推到极致更重要**。
-
-## 一个误导了排查方向的 `connection refused`
-
-切完用户态后，日志里一度出现了：
-
-```text
-netstack: could not connect to local backend server
-connect: connection refused
-```
-
-第一眼很像 Netstack 没成功。
-
-后来才发现，测试时访问了一个**目标设备根本没有监听的端口**。
-
-改成真实开放的 TCP 服务端口，连接就通了。
-
-`connection refused` 在这里说明 Netstack 尝试连接后端时收到拒绝，不应该自动被解读成「Tailnet 隧道坏了」。排障时最好先在 LAN 内确认目标主机、目标端口与服务监听，再从远端发起完全一致的访问。
-
-这也改变了我的验收习惯：比起只执行 `ping` 或者看 `tailscale status`，更重视实际业务协议的**端到端连接成功**。
-
-可以按下面的顺序核对：
-
-```bash
-# 在家庭 LAN 中能运行 curl 的终端执行（不是 Tailscale 容器的必备命令）
-# 事先在当前 Shell 配置 LAN_HOST 和 SERVICE_PORT
-curl -I --connect-timeout 5 "http://${LAN_HOST}:${SERVICE_PORT}/"
-```
-
-这里故意用变量代替具体地址；运行前需在执行测试的 Shell 中设置目标主机和服务端口。Tailscale 官方容器镜像不保证预装 `curl`，所以这条命令应从 NAS 宿主环境或另一台能够访问家庭 LAN 的设备执行；也可以直接用浏览器打开已经确认存在的 HTTP 服务。对于不响应 HEAD 请求的服务，不要仅凭 `curl -I` 的状态码判断连通性。
-
-## P2P 小优化：有 IPv6，为什么仍然走 DERP？
-
-![手机与 NAS 的 IPv4 IPv6 直连、STUN 发现与 DERP 回退关系](/images/network/ipv6-p2p-derp-paths.svg)
-
-这部分只谈链路质量，不再把它和子网转发混在一起。用户态 Netstack 影响 NAS 进入家庭 LAN 的路径，**并不阻止 Tailscale 使用 WireGuard UDP P2P**。
-
-最初 Android 和 NAS 偶尔可以 IPv4 直连，但多次回退自建 DERP，延迟波动较大。两端都已有公网 IPv6，NAS 出站也正常，`tailscale netcheck` 却显示 `IPv6: no`。
-
-排查后发现，服务所用的公开域名原先只有 A 记录，缺少 AAAA，而控制面内置的 STUN/DERP 已具备 IPv6 监听能力。补充 Cloudflare AAAA 并保持 **DNS only（灰云）**，重新测试，`netcheck` 的 IPv6 探测变成 `yes`。
-
-但 **STUN 能检测 IPv6，不等于端到端 P2P 已经直连**。后来在真实的对等状态中多次看到 `direct [IPv6 peer]:port`，这才是直连证据。公网 IPv6 仍可能受运营商路由、移动网络、防火墙影响；有些直连样本依然延迟较高，尚不足以定位唯一原因。
-
-普通 Cloudflare 代理记录不会替你中转任意 UDP STUN；只添加 AAAA 而没有检查主机监听、防火墙，也可能无效。现阶段我不打算为偶发高延迟继续改 NAS 内核或增加第二个 DERP，中继节点越多也意味着更多证书、网络和监控维护。
-
-参考：[Tailscale 连接类型](https://tailscale.com/docs/reference/connection-types/)、[Headscale DERP](https://headscale.net/stable/ref/derp/)。
-
-## 最后：NAS 子网路由，先验角色，再验业务
-
-这次折腾最后留下来的思路很简单：**先确认 NAS 是 Tailnet 与家庭 LAN 之间的子网路由，而不是出口节点；再把控制面、业务转发、链路质量分开验收。**
-
-最开始的内核态路径确实出现了 `mangle` / `connmark` 等异常，但当时没有完整抓包，不能武断认定唯一根因。我最后选择了已经实际测通家庭 TCP 服务的用户态 Netstack，并保留 WireGuard P2P 优先、DERP 兜底。
-
-对于低并发的个人远程维护，这比继续调整 NAS 的定制内核更省心。需要持续做的是测试不同网络下的实际服务访问与稳定性，而不是因为一次慢连接就再加一台中继。
-
-官方资料：[Tailscale 子网路由](https://tailscale.com/docs/features/subnet-routers)、[Tailscale Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params)、[Headscale Routes](https://headscale.net/stable/ref/routes/)、[Kernel vs. Netstack](https://tailscale.com/kb/1177/kernel-vs-userspace-routers)。
+参考资料：[Tailscale Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params)、[Tailscale 子网路由](https://tailscale.com/docs/features/subnet-routers)、[Headscale Routes](https://headscale.net/stable/ref/routes/)、[Tailscale 用户态模式](https://tailscale.com/kb/1177/kernel-vs-userspace-routers)。
