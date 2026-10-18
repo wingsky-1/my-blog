@@ -127,7 +127,7 @@ docker exec tailscale-subnet tailscale netcheck
 
 当时环境有这些确定的事实：
 
-- NAS 以 Docker **host 网络模式**运行 Tailscale，并发布 家庭网段。
+- NAS 以 Docker **host 网络模式**运行 Tailscale，并发布家庭网段。
 - Headscale 显示该路由 **Approved、Available、Serving**。
 - NAS 和 Android 之间的 Tailnet 通信正常；NAS 自身也能访问家庭 LAN。
 - Linux 的 `net.ipv4.ip_forward=1`；检查过的路由决策符合预期。
@@ -160,17 +160,7 @@ Tailscale 的子网路由在 Linux 上主要有两种工作方式。
 
 参考：[Tailscale 官方：Kernel vs. netstack subnet routing](https://tailscale.com/kb/1177/kernel-vs-userspace-routers)。
 
-在我的 Z2Pro Docker 环境里，最终保留了这组关键设置：
-
-```yaml
-environment:
-  TS_USERSPACE: "true"
-  TS_ROUTES: "家庭网段"
-```
-
-注意这只是相关的 Compose 环境片段，**不是可直接复制部署的完整 Compose 文件**。实际还需要镜像、状态持久化、控制面注册、网络与访问权限等配置；密钥不应出现在文章或公开仓库里。
-
-启动后确认进程参数：
+在 Z2Pro 上，最后采用的关键是前文 Compose 里的 `TS_USERSPACE: "true"` 与 `TS_ROUTES`。这里不再重复一份容易与正式示例产生歧义的配置。启动后可以从进程参数确认运行模式：
 
 ```text
 tailscaled --tun=userspace-networking
@@ -204,14 +194,11 @@ connect: connection refused
 可以按下面的顺序核对：
 
 ```bash
-# 在 NAS 上检查本地目标服务是否可达（示例地址和端口）
-curl -I --connect-timeout 5 http://家庭服务地址/
-
-# 在手机端使用同一目标地址和真实服务端口
-# 验证页面或接口返回，而不是只看 Tailnet 在线状态
+# 先在 Shell 中设置真实的 LAN_HOST 和 SERVICE_PORT
+curl -I --connect-timeout 5 "http://${LAN_HOST}:${SERVICE_PORT}/"
 ```
 
-这里的 `家庭服务地址` 只是示例，不能据此推断我的实际服务地址。对于不响应 HEAD 请求的服务，也不能仅用 `curl -I` 返回的 HTTP 状态码判断连通性。
+这里故意用变量代替具体地址；运行前要在 Shell 中设置实际的目标主机与服务端口。对于不响应 HEAD 请求的服务，也不能仅用 `curl -I` 返回的 HTTP 状态码判断连通性。
 
 ## P2P 小优化：有 IPv6，为什么仍然走 DERP？
 
