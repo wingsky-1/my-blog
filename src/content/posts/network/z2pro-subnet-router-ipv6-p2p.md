@@ -156,8 +156,6 @@ tailscale netcheck
 
 第二个更简单：换成 Netstack 后，我一度看到 `connection refused`，还以为用户态也失败了。结果是自己测错了端口，目标主机压根没监听那个服务。改成真实开放的端口就通了。
 
-![内核转发与用户态 Netstack 的数据处理区别](/images/network/nas-kernel-vs-netstack.svg)
-
 所以我现在更倾向于先确认服务、再确认组网路由，最后才去查内核和防火墙。复杂问题可以和 AI 一起分析，但最好先把问题范围缩小，别一遇到不通就重装容器。
 
 例如整理好**已脱敏**的 Compose、容器日志、路由审批状态和一次真实业务访问结果，再让 AI 按「控制面、客户端路由、NAS 到 LAN、P2P/DERP」四层给出排查顺序。**不要提交预授权密钥、节点私钥、真实公网地址或包含敏感信息的完整日志**；AI 给出的命令也要确认适用于 NAS 的系统环境后再执行。
@@ -182,4 +180,4 @@ tailscale netcheck
 
 后续如果再遇到异常，先按层次收集证据，再与 AI 协作缩小范围，比照搬别人的防火墙修复脚本更可靠。
 
-参考资料：[Tailscale Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params)、[Tailscale 子网路由](https://tailscale.com/docs/features/subnet-routers)、[Headscale Routes](https://headscale.net/stable/ref/routes/)、[Tailscale 用户态模式](https://tailscale.com/kb/1177/kernel-vs-userspace-routers)。
+参考资料：[Tailscale Docker 参数](https://tailscale.com/docs/features/containers/docker/docker-params)、[Tailscale 子网路由](https://tailscale.com/docs/features/subnet-routers)、[Headscale Routes](https://headscale.net/stable/ref/routes/)、[Tailscale 用户态模式](https://tailscale.com/docs/reference/kernel-vs-userspace-routers)。
