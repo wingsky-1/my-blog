@@ -1,7 +1,7 @@
 ---
 title: "Plus 订阅回本记：从 Codex 到免费模型，我是怎么折腾的"
 description: "从 ChatGPT 聊天、Tibo 反复重置 Codex 额度，到用 Magpie 接免费模型做任务。每月 20 美元的 Plus，我都折腾出了什么。"
-pubDatetime: 2026-10-19T15:00:00+08:00
+pubDatetime: 2026-10-19T20:00:00+08:00
 tags: ["AI", "ChatGPT Plus", "Codex", "Magpie"]
 featured: false
 draft: false
