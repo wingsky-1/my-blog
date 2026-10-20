@@ -1,114 +1,114 @@
 ---
-title: "我把 Muse 放上了主控位：OpenChamber + OpenCode + Magpie"
-description: "Codex 里用 Sol 起手加 V1 子代理已经能跑，但我不想每次新建会话都先发一句 hi。于是换到 OpenCode，让 Muse 直接派活，OpenChamber 管手机入口，Magpie 继续管模型和额度。"
+title: "Muse 当不了 Codex 主控，我换了 OpenCode"
+description: "在 Codex 里折腾子代理，工具能出现，却没法把 Muse 主控这条链路真正跑通。换到 OpenCode 后，我用 OpenChamber 从手机接着干活，Magpie 继续管理模型和额度。"
 pubDatetime: 2026-10-20T16:00:00+08:00
 tags: ["AI", "OpenChamber", "opencode", "Magpie"]
 featured: false
 draft: false
 ---
 
-上一篇[Plus 订阅回本记](/posts/ai/plus-subscription-worth-it/)刚写完，我又把主控换了。
+上一篇[Plus 订阅回本记](/posts/ai/plus-subscription-worth-it/)刚写完，我就把折腾了好一阵子的 Codex 工作流换掉了。
 
-倒不是 Codex 那套不能用。**新会话先用 Sol 发一句 `hi`，再切到 Muse，配合 Magpie 的 V1 子代理兼容方式，我已经跑通过。** 只是每次新建会话都要先走这一步，多少有点别扭。尤其我经常拿手机继续电脑上没做完的事，打开就想派任务，不想先给 GPT 打个招呼。
+之前想让 Muse 当主控，自己拆任务，再把具体的活交给其他模型。Codex 里我试过先用 Sol 发一句 `hi`，再切到 Muse；也试过 Magpie 的 V1 子代理兼容方式。一度能看到子代理工具，任务传递的问题也有缓解，我还以为快成了。
 
-所以这次没继续研究怎么绕 Codex 的限制，而是换到 OpenCode。Magpie 没丢，之前接好的模型和额度也没白折腾。
+但继续跑完整的主控派发流程，还是不行。**工具出现在会话里，和 Muse 真能稳定调度子代理，是两回事。** V1 兼容解决的是部分任务怎么交给子代理，不是第三方模型能不能在 Codex 里当主控。这条路我最终确认走不通。
 
-现在我从手机打开 OpenChamber，新建会话，主控就是 Muse。它负责拆任务、派活、收结果，具体干活的还是其他模型。
+所以没再纠结 Codex 的配置，直接换了 OpenCode。现在的组合是 OpenChamber + OpenCode + Magpie。说不上一步到位，不过 Muse 终于能直接坐在主控位上了。
 
-## 为什么是这三个
-
-我最后留下的是三层，没再往里面塞第四个调度器：
+## 这三个工具，分别干什么
 
 ```text
 手机 / 电脑
     │
     ▼
-OpenChamber        会话、项目、通知、定时任务
+OpenChamber       打开项目、管理会话、查看通知
     │
     ▼
-OpenCode v2.0.32   Muse 主控、子代理、工具权限
+OpenCode          Muse 主控、子代理、工具和权限
     │
     ▼
-Magpie             账号、模型路由、额度、故障切换
+Magpie            模型、账号、额度、路由
     │
     ▼
 各个平台的模型
 ```
 
-**[OpenChamber](https://github.com/openchamber/openchamber) 是我用来操作的界面。** Web 入口用固定端口，底下的 OpenCode 服务由它管理，端口可以在启动时分配。手机上能看会话、接着提要求，长任务结束也能收到通知。它省掉的是我为了一个任务还得打开电脑的麻烦。
+**OpenChamber 解决我怎么接着用的问题。** 我主要想在手机上打开一个 Web 页面，就能继续处理服务器上的项目，而不是每次都远程进终端。它负责会话和项目界面，也能看定时任务、接收长任务的通知。Web 入口用固定端口，底下的 OpenCode 实例由它管理，实例端口在启动时分配。
 
-**[OpenCode](https://github.com/anomalyco/opencode) 才是真正干活的。** 选哪个主控、能叫哪些子代理、谁可以修改文件、哪些 MCP 工具能用，都由它管。我当前用的是 v2.0.32，配置主要放在 `~/.config/opencode/opencode.jsonc`。相比给 Codex 新会话做「Sol 起手」的操作，这里直接选 Muse 当主控就行。
+**OpenCode 才是真正负责派活和执行的。** 我这边是 v2.0.32。默认模型、agent、权限、MCP 都在它的配置里管理。比起继续在 Codex 里想办法让第三方模型拿到子代理工具，OpenCode 可以直接让 Muse 当主控。这是我换过来的主要原因。
 
-**[Magpie](https://github.com/yetone/magpie) 还是老本行。** 它把不同平台的账号、免费额度和订阅放在同一个本地网关里，再给 OpenCode 提供模型。现在我的网关里有 35 个模型条目，但没必要把 35 个都摆进 OpenCode 的菜单。
+**Magpie 没换。** 之前接进去的免费额度、订阅和路由组都还在。它对 OpenCode 提供模型接口，谁有额度、请求该走哪个模型、失败后怎么切，都让 Magpie 处理。我这里网关有 35 个模型条目，不过平时不需要把它们全摆出来。
 
-这一套也不是完全没依赖。OpenCode 用到 Magpie 路由的模型时，网关停了，请求就会失败。但界面、任务调度、模型供给各管一块，比三处同时设置 fallback 容易排查得多。
+我挺喜欢现在这个分工：OpenChamber 管我怎么操作，OpenCode 管任务怎么执行，Magpie 管模型从哪来。Magpie 网关挂了，依赖它的模型调用当然也会失败，但至少我知道该去查哪一层。
 
-## Muse 负责派活，别让它把活全干了
+## Muse 当主控，但不让它包办一切
 
-我在 OpenCode 里留了七个角色。看着不少，其实常用的就几个：
+现在我配置了七个 agent，主控是 `build`，默认使用 Muse Spark 1.3。
 
-| 角色 | 负责什么 | 我现在配的模型 |
-| --- | --- | --- |
-| `build` | 主控，拆任务、派发、整合、验收 | Muse Spark 1.3 |
-| `explore` | 只读找文件、查代码 | `auto/deepseek-v4.1-flash#high` |
-| `worker` | 边界明确的编码任务 | `auto/deepseek-v4.1-flash#max` |
-| `general` | 边查边改的杂活 | `auto/deepseek-v4.1-flash#max` |
-| `reviewer` | 只读检查改动，报告问题 | `auto/glm-5.3-flash#high` |
-| `spec` | 动手前整理中文规格 | `auto/step-5-preview#medium` |
-| `oracle` | 架构决策、疑难问题兜底 | `group/hard#max` |
+- `build`：拆任务、分配、整合结果，最后验收，不负责埋头批量改代码。
+- `explore`：只读找文件、读代码，使用 `auto/deepseek-v4.1-flash` 的 `#high` 档。
+- `worker`：做边界明确的编码任务，使用同一个 DeepSeek 模型的 `#max` 档。
+- `general`：处理要一边检索一边修改的杂活，也是 DeepSeek `#max`。
+- `reviewer`：只读评审改动，用 `auto/glm-5.3-flash` 的 `#high` 档。
+- `spec`：动手前整理中文规格，使用 `auto/step-5-preview` 的 `#medium` 档。
+- `oracle`：遇到架构决策、难调试再出场，走 `group/hard` 的 `#max` 档。
 
-`build` 没有单独写死 `model`，用的是会话选中的默认模型，现在就是 Muse。它的提示词里我写得很直白：**自己负责拆分、跟进和验收，能交出去的执行任务就别亲自动手。** 子代理也不能只回来一句「已完成」，要说改了什么、验证了什么，还有什么问题。
+七个角色听着有点多，其实思路很朴素：**让主控把活分好，不要让一个模型从需求分析一路写到自我验收。**
 
-Muse Spark 1.3 在我当前配置里给了 1M 上下文。这对主控挺有用：同时派出去几个任务，回来一堆检索结果和改动说明，不至于太快把对话挤满。但窗口大不等于它适合亲手写所有代码，所以 `worker` 和 `general` 仍交给 DeepSeek。
+我在 `build` 的提示词里要求它把任务分出去，并且收回具体的结果。子代理说「完成了」还不够，要交代改了什么、跑了什么验证、哪里还没处理。遇到问题，再由主控决定是返工还是换人。
 
-`reviewer` 我故意和 `worker` 分开。写代码的模型自己说没问题，我一般不太放心；换个角色只读检查，至少能让它从另一种角度挑毛病。`spec` 则负责把模糊需求先变成能验收的文字，省得几个子代理各自理解一套。
+Muse Spark 1.3 的上下文在我当前配置里按 1M 设置。它得接住好几个子代理返回的内容，窗口大一些有用；但我不想让它因为窗口大，就把所有执行任务都揽下来。
 
-最舍不得乱用的是 `oracle`。它背后的 `group/hard` 优先走 `codex/gpt-6.1-sol`，后面才是免费模型兜底。有次查额度，Sol 的五小时窗口已经用了 88%，所以我把它限定在架构、难调试和便宜模型处理不了的任务上。日常找文件、整理文档，没必要动它。
+`reviewer` 和 `worker` 分开也是同一个考虑。让刚写完代码的模型自己说没问题，我总觉得不太踏实。即使用的是便宜模型，只要职责分清，也比全塞给主控省心。
 
-还有个我现在坚持的做法：**fallback 只放在 Magpie 一层。** OpenCode 的 agent 不再各写一套降级，OpenChamber 里对应的路由开关也关着。否则任务明明换了模型，我却不知道是哪层替我做的决定。
+最需要克制的是 `oracle`。它走的 `group/hard` 优先用 `codex/gpt-6.1-sol`，再交给免费模型兜底。有一次我看额度，Sol 的五小时窗口已经用了 88%。查个文件、改段说明就把它叫出来，太浪费了。现在只在普通 agent 处理不了的时候才用。
 
-## 真正烦人的，是配置对不上
+还有一条：**fallback 只放 Magpie 里。** OpenCode 的 agent 不再写一层，OpenChamber 的相关路由开关也关着。不然模型自动换了两次，我连究竟是谁换的都搞不清楚。
 
-换栈之后没再卡在子代理工具上，倒是被几个看起来很小的配置问题耽误了时间。
+## 换完之后，还踩了三个小坑
 
-### 模型名字有两套
+### 模型名抄错，白查半天
 
-Magpie 路由组里用的是内部名字，比如 `auto-minimax-m3-1-flash-free`；OpenCode 要填的是网关暴露出来的 `auto/minimax-m3.1-flash-free`。
+Magpie 里面的内部名，跟提供给 OpenCode 的模型名不完全一样。
 
-我一开始直接复制了内部名，结果 OpenCode 报模型不存在。不是账号失效，也不是路由没启动，就只是名字不对。
+比如内部写 `auto-minimax-m3-1-flash-free`，对外却是 `auto/minimax-m3.1-flash-free`。我直接把前者填进 OpenCode，结果提示模型不存在。排查半天，以为是网关或账号的问题，最后发现只是名字没写对。
 
-现在改 agent 前，我先看：
+后来我都直接从这里复制名字：
 
 ```bash
 magpie models opencode
 ```
 
-从输出里抄对外模型名，不从 Magpie 的内部路由配置里猜。
+### 网关有 35 个模型，OpenCode 怎么只看到 8 个
 
-### 网关有模型，不等于 OpenCode 列表里有
+这个也让我误会过。`magpie visible opencode` 当时列出来的是 7 个 family、8 个模型，跟网关里的 35 个条目根本对不上。
 
-当时 Magpie 网关里有 35 个模型条目，`magpie visible opencode` 列出来的却只有 7 个 family、8 个模型。
-
-我起初以为同步失败了，后来才明白，**网关全量和给 OpenCode 显示的模型是两回事**。可见性名单没选中的模型，不会因为我手动在 agent 里写了名字就自动出现在选择菜单。
+其实不是少同步了 27 个。**Magpie 网关里有多少模型，跟哪些模型对 OpenCode 可见，是两个设置。** 想把某个 family 加进列表，需要单独调整可见性，不是只改 OpenCode 的 agent 配置。
 
 ```bash
 magpie visible opencode
 magpie visible opencode <family>
 ```
 
-第一条查看，第二条是我需要某个 family 时再显式调整。平常用不到的模型继续藏着，菜单反而清爽。
+后来想想也好。35 个全显示出来，每次选模型还得在列表里翻半天。
 
-### OpenCode V1 和 V2 的 MCP 配置别混着抄
+### MCP 改了配置，却没生效
 
-这个坑更隐蔽。我配置里留着两种写法：旧式 `mcp.<name>.enabled` 和 V2 的 `mcp.servers.<name>.disabled`。同一个 Tavily，在一处看着启用，另一处却是关闭的。
+我原来的配置混着两种 MCP 写法：一处用 `enabled`，另一处在 `mcp.servers` 里用 `disabled`。Tavily 就这么一边开着、一边关着。
 
-我当时盯着配置看了半天，最后还是 `opencode mcp list` 一眼看出了 disabled。现在用 V2，就按 [V2 MCP 文档](https://dev.opencode.ai/v2/docs/mcp-servers/) 整理 `mcp.servers`，不再拿旧版示例混着改。
+最烦的是它也不报一个显眼的错。直到我跑了：
 
-顺带还发现 `sequential-thinking` 仍然是 connected。以前觉得 MCP 多一点总没坏处，现在反而想删掉不必要的：主控已经在拆任务了，再塞一套固定思考步骤，对我这套派发方式没什么帮助。
+```bash
+opencode mcp list
+```
 
-## 更新完，顺手验一下
+才发现那条连接显示 disabled。以后改完配置，我宁愿多查一次实际状态，也不想光看文件觉得自己已经改对了。
 
-三件套里我最常动的是 Magpie 的模型和路由。改完不靠猜，通常顺手跑一遍：
+顺手还发现 `sequential-thinking` 仍然连着。以前装 MCP 是觉得多多益善，后来发现主控本来就要拆任务，再塞一套固定思考步骤，未必是帮忙。这项我打算清掉。
+
+## 现在怎么更新、怎么检查
+
+Magpie 的模型和路由我改得比较勤，更新完一般会顺手执行：
 
 ```bash
 magpie update
@@ -118,14 +118,14 @@ magpie models opencode
 opencode mcp list
 ```
 
-`library sync` 负责把 Magpie 管的指令、MCP 和 Skill 同步到客户端配置；但配置写进去不等于服务真的连上。最后的 `mcp list` 是为了看连接状态。我的自定义 agent 配置也会顺手检查一下，免得同步后只顾看模型列表。
+前面更新和同步，后面查实际暴露的模型、MCP 有没有连上。`library sync` 跑完，只能说明配置同步过，不代表 MCP 服务一定正常。
 
-这不是让人照抄的通用安装教程，只是我现在修改这套环境后的验收习惯。OpenChamber 本身的更新、服务状态另看，不混在这几条里。
+这几条是我当前环境的操作记录，不是三个工具的完整安装教程。OpenChamber 本身有没有正常启动，还得单独看。
 
-## 换完之后值不值
+## 折腾这一圈，值不值
 
-最明显的变化，不是模型突然聪明了，而是**手机上打开会话就能开始干活**。不用先发一句 `hi`，也不用在 GPT 主控和 Muse 之间切来切去。像先找代码、再拆修复、最后看评审这种活，主控能把几段任务分出去，我只需要在关键地方做决定。
+现在最舒服的地方，是我拿出手机打开 OpenChamber，就能直接用 Muse 新建会话、拆任务、安排子代理。查完代码再修、修完再审，这些步骤不用我一直盯着终端串起来。长任务跑着，我也能先做别的事。
 
-当然也没到开箱即用的程度。光是模型别名、可见性和 MCP 新旧配置，就够折腾一轮。七个角色也不是越多越好，真发现哪个长期没必要，我会直接删。
+代价当然有。三个工具的配置需要对齐，模型别名、可见性和 MCP 那几处，都实实在在浪费过我的时间。七个 agent 也不是定下来就不改了，用不上的我会继续删。
 
-如果主要在电脑上用 Codex，之前 Sol 起手加 V1 子代理的办法仍然能用，不一定值得专门换栈。但对我来说，少一步手工切模型，加上手机上能随时接着跑项目，比再多接十几个免费模型有用得多。
+如果你在 Codex 里只需要 GPT 主控，没碰到我这种问题，可能根本没必要换。**我换栈不是因为 OpenCode 什么都更强，而是因为我就是想让 Muse 直接派活。** 在 Codex 那条路没走通，换过来总算做到了。
