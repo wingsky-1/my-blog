@@ -2,7 +2,7 @@
 title: "Plus 订阅回本记：从 Codex 到免费模型，我是怎么折腾的"
 description: "从 ChatGPT 聊天、Tibo 反复重置 Codex 额度，到用 Magpie 接免费模型做任务。每月 20 美元的 Plus，我都折腾出了什么。"
 pubDatetime: 2026-10-19T19:30:00+08:00
-modDatetime: 2026-10-20T17:45:00+08:00
+modDatetime: 2026-10-20T17:50:00+08:00
 tags: ["AI", "ChatGPT Plus", "Codex", "Magpie"]
 featured: false
 draft: false
@@ -87,29 +87,17 @@ OpenCode Zen 的一个免费 DeepSeek 接口，标称窗口是 200K。有人说�
 
 免费的是某个模型的某种调用，不代表整个账号都不扣钱。好在 Magpie 能把账本摊开来看，不然这些小额度还真容易被我折腾没了。
 
-## 子代理的两个坑，最后都绕过去了
+## 子代理这里，我最后还是放弃了 Codex
 
-这一路最折腾的其实不是接 API，而是 Codex 的子代理。
+最折腾的不是接 API，而是想让 Muse 直接当 Codex 的主控。
 
-我原本想拿 Muse 之类的第三方模型当主控，再让它调度其他模型。结果直接用第三方模型开新会话，子代理工具没正常出现。折腾半天，还以为只能让 GPT 一直坐在主控位置。
+直接用第三方模型开会话时，`spawn_agent` 等子代理工具没正常出现。我试过先用 Sol 发一句 `hi`，再在同一个会话里切到 Muse，确实一度能看到工具。Magpie 里切换到 V1 子代理兼容方式，也缓解过 V2 加密任务传递给第三方模型的问题。
 
-后来想到一个办法：**新会话先选 Sol，发一句 `hi`；等它回复，再在同一个会话切换到第三方模型，最后发送正式 Prompt。**
+当时看到这些现象，我以为终于搞定了。后来真拿它跑完整的主控派发流程，才发现**工具出现和整条工作流能用，完全不是一回事**。V1 解决的是任务投递的兼容性，也不能让第三方模型在 Codex 里稳定当主控。这条路最终确认不可行，我就没再往上补配置了。
 
-试了一下，还真行。切换之后子代理工具没有丢，第三方模型终于可以继续用这些工具。
+相关问题可以参考 [Magpie #141](https://github.com/yetone/magpie/issues/141)。Sol 起手和 V1 兼容的尝试确实发生过，但不是我现在推荐的可用方案。
 
-工具保住了，却还有第二个坑：Codex 的 Multi-Agent V2 会把部分子任务封装成加密内容，派给第三方子代理时，对方可能根本读不到任务。我一开始还在研究怎么处理这些加密消息，后来发现 **Magpie 里就有「启用 V1 子代理」选项**。
-
-打开这个选项，改走 V1 的子代理兼容方式，我这边的任务传递问题也解决了。根本不需要自己研究怎么解密 V2 的消息。
-
-最后实际能用的组合很简单：
-
-1. 在 Magpie 中启用 **V1 子代理**，避开 V2 加密任务的兼容问题。
-2. Codex 新会话先用 **Sol** 发一句 `hi`，再切换到需要的第三方模型。
-3. 发正式任务，让主控调用子代理执行。
-
-两个坑折腾的时候都挺烦，弄明白以后反而没几步操作。相关背景可以翻翻 [Magpie #141](https://github.com/yetone/magpie/issues/141)，这套方法我确实跑通过。
-
-后来我又试了 OpenCode。不是上面这套 Sol 起手失效了，而是我嫌每次新建会话都得先发一句 `hi`。换过去之后，Muse 可以直接当主控，Magpie 继续管模型和额度，手机上用 OpenChamber 接着操作。具体踩坑写在[我把 Muse 放上了主控位：OpenChamber + OpenCode + Magpie](/posts/ai/openchamber-opencode-magpie-workflow/)。
+后来我换到了 OpenCode，让 Muse 直接当主控；OpenChamber 负责手机上的 Web 入口，Magpie 仍然管理模型和额度。具体怎么用，以及换完踩了什么坑，我另外写了一篇：[Muse 当不了 Codex 主控，我换了 OpenCode](/posts/ai/openchamber-opencode-magpie-workflow/)。
 
 ## 这 20 美元，到底回本没有？
 
